@@ -514,15 +514,32 @@ table, which is what qbx_garages reads. Writing `'{}'` there produces
 `attempt to perform arithmetic on a nil value (field 'engineHealth')` and the
 car cannot leave the garage.
 
-**An item name that becomes a file name needs both guards.** `GET
-/api/items/:name/image` builds a path out of the name, so `routes/inventory.js`
-keeps the allowlist `/^[a-z0-9_-]{1,64}$/i` *and* resolves the joined path and
-asserts it is still under the image folder (`underImageRoot`). The allowlist
-alone already refuses every traversal, but it is one regex away from not doing
-so, and the containment check is what a traversal then runs into. An escape is
-refused with 404, never trimmed and served. Weapon names are upper-case
+**An item name never becomes a file path.** `GET /api/items/:name/image` used
+to join the name onto the image folder and serve whatever existed. Two guards
+made that safe — the allowlist `/^[a-z0-9_-]{1,64}$/i` and `underImageRoot()`,
+which resolves the candidate and asserts it is still under the folder — but
+safe by argument, not by construction: GitHub code scanning reported both the
+`existsSync` and the `sendFile` as `js/path-injection`, and it is right that
+nothing *proves* the containment, because the folder itself is discovered at
+runtime (`discoverImagePath()`) and so is no constant root. `inventory.js`
+therefore keeps an index built from `fs.readdirSync()` of that folder: item
+name → absolute file path. The request picks a key; every path that can be
+served came out of the listing, so no request can name one. Both guards stay
+as defence in depth, now applied to the indexed entries, and an escape is
+still refused with 404, never trimmed and served. Weapon names are upper-case
 (above), so the allowlist is deliberately case-insensitive — a case-sensitive
 one would hide every weapon icon.
+
+**The image index is at most a minute old.** Every request hitting the
+filesystem is what made the old code a path expression, so the listing is
+cached (`INDEX_MAX_AGE_MS`, 60 s) and rebuilt on the first lookup after it
+expires. Icons added or removed while the panel runs therefore appear and
+disappear within a minute instead of instantly — no restart needed, and
+`refreshImageIndex()` forces a rebuild. Only regular files with a `png`,
+`webp` or `jpg` extension are indexed, in that precedence per item, and the
+name on disk is matched exactly: that is what a case-sensitive Linux
+filesystem does anyway. Symlinks are deliberately not indexed — one can point
+out of the folder and nothing here resolves it.
 
 **A vehicle model name is validated even when the catalog is empty.** The
 model arrives in the request body, feeds the Jenkins loop in `getHashKey()`
