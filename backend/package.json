@@ -1,18 +1,20 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "main": "server.js",
+  "main": "scripts/start.js",
   "scripts": {
     "test": "node --test",
-    "start": "node server.js",
-    "dev": "node --watch server.js",
-    "build:web": "npm --prefix ../frontend run build"
+    "start": "node scripts/start.js",
+    "dev": "node --watch scripts/start.js",
+    "build:web": "npm --prefix ../frontend run build",
+    "secrets": "node scripts/secrets-report.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@infisical/sdk": "^5.0.2",
     "axios": "^1.13.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",

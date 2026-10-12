@@ -175,6 +175,12 @@ Copy `backend/.env.example` to `backend/.env` and fill it in. Every setting is e
 | `DISCORD_OWNER_IDS` or `DISCORD_ROLE_OWNER` | At least one owner. |
 | `SESSION_SECRET` | Signs the login cookie. |
 
+Optionally, keep those settings in [Infisical](https://infisical.com) instead of on the host: set `INFISICAL_CLIENT_ID`, `INFISICAL_CLIENT_SECRET` and `INFISICAL_PROJECT_ID` (plus `INFISICAL_ENVIRONMENT` and `INFISICAL_SECRET_PATH` if they are not `prod` and `/`), and the backend pulls them at start-up. The vault wins, `backend/.env` fills whatever it does not deliver, and an unreachable vault falls back to the file rather than taking the panel down.
+
+```bash
+npm --prefix backend run secrets   # which settings are synced, which are not
+```
+
 ### 4. Install and build
 
 ```bash
@@ -200,7 +206,18 @@ The panel is at `http://<host>:3001`, and Veritas ID at `/id`.
 
 ## Updating
 
-On a server install, `deploy/update.sh` pulls `main`, reinstalls, rebuilds the panel and restarts `veritas.service`. Your `.env`, `config.lua` and saved roles are gitignored and stay untouched. Run `ensure veritas` in the server console when the bridge changed.
+On a server install, `deploy/update.sh` pulls `main`, reinstalls, checks the secrets, rebuilds the panel and restarts `veritas.service`. Your `.env`, `config.lua` and saved roles are gitignored and stay untouched. Run `ensure veritas` in the server console when the bridge changed.
+
+Every run ends with the secret verdict, so you can see at a glance whether the host is actually running on the vault:
+
+```
+-------------------------------------------------------------
+  Secrets: All secrets synced from Infisical.
+           Details above, or run: npm --prefix backend run secrets
+-------------------------------------------------------------
+```
+
+The other verdicts are `PARTLY SYNCED` (some settings still come from `backend/.env`, named in the detail block), `MISSING SECRETS` (a required setting is in neither place) and `NOT SYNCED` (Infisical is unconfigured or unreachable). The deploy itself never stops on them.
 
 ---
 
@@ -214,6 +231,7 @@ The panel reaches a live roleplay database, so the defences are part of the prod
 - **Rate limits** on sign-in and on every data route, bucketed per signed-in account rather than per address wherever a session exists.
 - **The FiveM resource authenticates with its own secret** and is held to a single permission, not waved past the permission check.
 - **Reads and writes are separated deliberately:** Veritas ID can only read, and a write the game server refuses is reported as refused instead of being drawn as success.
+- **Settings can live in a vault** rather than in a file on the host: with Infisical configured, the backend pulls them at start-up, and the deploy reports which ones actually came from there. Key names are printed, values never are.
 
 `BACKEND.md` §4 is the authority on these and must not be broken casually.
 

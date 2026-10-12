@@ -185,6 +185,8 @@ never happened.
 
 ```
 server.js              Wiring only: middleware order, static files, startup banner.
+scripts/               start.js (what `npm start` runs: Infisical, then server.js)
+                       and secrets-report.js (the sync verdict, §5).
 routes/                One file per area. Each exports { router }.
 utils/                 The parts with logic worth testing.
 data/                  Runtime state. Gitignored. Written by the panel and by
@@ -209,6 +211,7 @@ commentPolicy.test.js  Repo-wide guard for the comment policy (§1).
 | `framework.js` | Which framework this schema is (`qb` / `esx`). |
 | `search.js` | How every free-text search reads a query: case-blind, words in any order, spacing ignored. |
 | `rateLimit.js` | `oncePer(name, ms)`: one request per window per person, 429 + `Retry-After` otherwise. |
+| `secrets.js` | Infisical: the fetch, and the verdict on what is synced and what is not (§5). |
 
 ---
 
@@ -372,6 +375,43 @@ One `.env` in `backend/`, gitignored. `backend/.env.example` carries the same
 key set with no values — **keep the two key sets identical**; there is no
 tolerance here for a key that exists in one and not the other.
 
+### Infisical
+
+Optional, and off until `INFISICAL_CLIENT_ID`, `INFISICAL_CLIENT_SECRET` and
+`INFISICAL_PROJECT_ID` are all set. With them, `npm start` runs
+`scripts/start.js`, which reads the project path, puts the values into
+`process.env`, and only then hands over to `server.js`.
+
+**The vault wins, the file fills the gaps.** dotenv never overwrites a variable
+that is already set, so anything Infisical delivered stands and `backend/.env`
+answers for the rest. That ordering is the whole integration: `server.js` itself
+knows nothing about Infisical and needs no change.
+
+**A vault that cannot be reached is not fatal.** Bad credentials, no network, a
+deleted project — the start-up says so and carries on with `backend/.env`. An
+install that worked yesterday must not be taken down by a secret manager, and an
+owner locked out of their own panel by a network blip would break §4.
+
+**`.env.example` is the key set the verdict is measured against.** Every key it
+declares is expected to come from the vault; a key that only exists in the local
+file is reported as *local only*, which is the honest answer to "is everything
+synced?" — no. `npm run secrets` prints that verdict, and `deploy/update.sh`
+shows it on every deploy (§7). Its exit codes: `0` all synced, `1` a required
+setting is absent on both sides, `2` partly synced, `3` Infisical unconfigured or
+unreachable.
+
+Required means the panel cannot come up correctly without it: the three `DB_*`
+that name a database, `FIVEM_JSON_PATH`, `FIVEM_API_URL`, `SESSION_SECRET`, and
+one of `DISCORD_OWNER_IDS` / `DISCORD_ROLE_OWNER` (§4: the owner can never be
+locked out). The Discord trio becomes required as soon as any one of it is set,
+because half a sign-in configuration is worse than none. Everything else may be
+legitimately empty and is reported as *unset*, not as a problem.
+
+The report prints key names and where they came from, **never a value** — it
+runs on a deploy log that nobody treats as a secret. `INFISICAL_*` itself is
+excluded from the verdict: the credentials that open the vault cannot live
+inside it.
+
 The owner has asked specifically that nothing be configured twice. Before
 adding a key, check whether an existing one already answers the question.
 
@@ -461,8 +501,14 @@ nothing.
 ## 7. Deployment
 
 Debian host, repo at `/opt/veritas`, owned by `fivem`. `deploy/update.sh`
-does: fetch → `git reset --hard` → `npm ci` → vite build →
+does: fetch → `git reset --hard` → `npm ci` → secret check → vite build →
 `systemctl restart veritas`.
+
+The secret check prints the Infisical verdict twice: once where it runs, and
+once in a framed block at the very end, because the frontend build scrolls the
+first one out of sight. It never stops the deploy — a host with a complete
+`backend/.env` deploys fine whatever the vault says — so the verdict is the
+thing to read, not the exit status of the script.
 
 Consequences worth holding on to:
 
