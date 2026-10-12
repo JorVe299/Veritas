@@ -29,7 +29,6 @@
 - [Updating](#updating)
 - [Security](#security)
 - [Development](#development)
-- [Documentation](#documentation)
 
 ---
 
@@ -106,7 +105,7 @@ Players sign in with the same Discord account they play with, at `/id`. They see
 |---|---|
 | ![Veritas ID: a player's characters with job, cash and bank](docs/screenshots/veritas-id-characters.jpg) | ![Veritas ID: one character's papers, work, money, licences and condition](docs/screenshots/veritas-id-character.jpg) |
 
-> The screenshots show made-up demo characters. No real player data is pictured. [docs/screenshots/CAPTURE.md](docs/screenshots/CAPTURE.md) says how they are taken and when they need retaking.
+> The screenshots show made-up demo characters. No real player data is pictured.
 
 ---
 
@@ -233,7 +232,7 @@ The panel reaches a live roleplay database, so the defences are part of the prod
 - **Reads and writes are separated deliberately:** Veritas ID can only read, and a write the game server refuses is reported as refused instead of being drawn as success.
 - **Settings can live in a vault** rather than in a file on the host: with Infisical configured, the backend pulls them at start-up, and the deploy reports which ones actually came from there. Key names are printed, values never are.
 
-`BACKEND.md` §4 is the authority on these and must not be broken casually.
+Each of these is covered by tests, so a change that quietly removes one fails the suite rather than shipping.
 
 ---
 
@@ -250,15 +249,4 @@ cd frontend  && npm test      # vitest run
 cd frontend  && npm run lint  # eslint
 ```
 
-For sign-in during development, set `PANEL_ORIGIN=http://localhost:5173` in `backend/.env`.
-
----
-
-## Documentation
-
-| Document | What it covers |
-|---|---|
-| [BACKEND.md](BACKEND.md) | The handbook: how the backend is put together, the invariants it must not break, the comment policy, and what has gone wrong before. Read it before changing the backend. |
-| [backend/.env.example](backend/.env.example) | Every setting, with its meaning, format and default. |
-| [frontend/README.md](frontend/README.md) | The panel's build and test setup. |
-| [docs/screenshots/CAPTURE.md](docs/screenshots/CAPTURE.md) | How the screenshots in this README are taken and kept current. |
+For sign-in during development, set `PANEL_ORIGIN=http://localhost:5173` in `backend/.env`. Every setting is documented in [backend/.env.example](backend/.env.example); the panel's own build and test setup is in [frontend/README.md](frontend/README.md).

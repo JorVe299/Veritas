@@ -149,6 +149,13 @@ veritas/config.lua
 # JSON dumps the bridge writes at runtime; the backend copies them from FIVEM_JSON_PATH
 veritas/*.json
 
+# Working documents: the backend handbook, its walk-throughs, the screenshot harness.
+# Written for whoever develops this; of no use to anyone running it
+/BACKEND.md
+/deploy/role-write-check.md
+/docs/screenshots/CAPTURE.md
+/docs/screenshots/mock/
+
 # AI tooling: assistant settings, skill state and output stay local
 # Claude Code: settings, memory and project instructions
 .claude/
