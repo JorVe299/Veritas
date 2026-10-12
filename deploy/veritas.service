@@ -1,0 +1,39 @@
+# Reference unit: copy to /etc/systemd/system/veritas.service, then
+# systemctl daemon-reload && systemctl enable --now veritas
+#
+# ExecStart has to go through scripts/start.js (npm start does), or the settings
+# in Infisical are never read and backend/.env alone is in effect
+
+[Unit]
+Description=Veritas admin panel
+Documentation=https://github.com/JorVe299/jp-veritas
+After=network-online.target mariadb.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=fivem
+Group=fivem
+WorkingDirectory=/opt/veritas/backend
+
+# npm start = node scripts/start.js: Infisical first, then the server
+ExecStart=/usr/bin/npm start
+
+Restart=on-failure
+RestartSec=5
+
+# dotenv resolves against WorkingDirectory above; this line only adds the vault
+# credentials earlier, for a unit that keeps them out of backend/.env
+# EnvironmentFile=-/etc/veritas/infisical.env
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=veritas
+
+[Install]
+WantedBy=multi-user.target

@@ -111,6 +111,14 @@ function report({ template = [], infisical = {}, local = {} } = {}) {
     };
 }
 
+// Module state, so server.js can tell a start through scripts/start.js from a direct one
+let delivered = false;
+
+/** Whether this process ever took values from the vault; false after a direct `node server.js` */
+function loaded() {
+    return delivered;
+}
+
 /**
  * Puts fetched values into `env`
  * The vault wins over `backend/.env`, which dotenv only applies to keys still unset (§5)
@@ -122,6 +130,7 @@ function apply(secrets = {}, env = process.env) {
         env[key] = value;
         applied += 1;
     }
+    delivered = true;
     return applied;
 }
 
@@ -178,5 +187,5 @@ async function fetchSecrets(settings = config()) {
 
 module.exports = {
     REQUIRED, DISCORD_SET, OWNER_EITHER, TEMPLATE,
-    config, templateKeys, report, apply, collect, fetchSecrets,
+    config, templateKeys, report, apply, loaded, collect, fetchSecrets,
 };

@@ -14,6 +14,7 @@ const perms = require('./utils/permissions');
 const resourceAuth = require('./utils/resourceAuth');
 const originGuard = require('./utils/originGuard');
 const limits = require('./utils/apiLimits');
+const secrets = require('./utils/secrets');
 
 const app = express();
 
@@ -106,6 +107,17 @@ app.listen(PORT, () => {
             .map(r => `${r.label}: ${r.users} id(s) / ${r.guildRoles} role(s)`)
             .join(', ');
         console.log(`[Perms] ${mapped}`);
+    }
+
+    // A service pointed straight at this file skips scripts/start.js, so the vault is never read
+    if (secrets.config().ready && !secrets.loaded()) {
+        console.warn('');
+        console.warn('  ==================== ATTENTION ====================');
+        console.warn('  !  Infisical is configured but was not read: this process did not start');
+        console.warn('  !  through scripts/start.js, so backend/.env alone is in effect.');
+        console.warn('  !  Point the service at it: ExecStart=/usr/bin/npm start (see deploy/).');
+        console.warn('  ===================================================');
+        console.warn('');
     }
 
     // Framed so misconfigurations stand out in the log

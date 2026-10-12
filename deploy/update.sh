@@ -35,6 +35,14 @@ npm --prefix frontend run build
 
 # Restart needs root (or sudo rights for the service); otherwise say so
 if systemctl is-enabled --quiet veritas 2>/dev/null; then
+    # A unit pointed straight at server.js skips scripts/start.js, and Infisical is never read
+    EXEC="$(systemctl show veritas -p ExecStart --value 2>/dev/null || true)"
+    if [ -n "$EXEC" ] && ! printf '%s' "$EXEC" | grep -qE 'npm|start\.js'; then
+        SECRETS_VERDICT="$SECRETS_VERDICT
+           WARNING: veritas.service starts the backend without scripts/start.js,
+           so Infisical is skipped at runtime. Compare deploy/veritas.service."
+    fi
+
     echo "==> Restarting veritas.service"
     systemctl restart veritas
 else

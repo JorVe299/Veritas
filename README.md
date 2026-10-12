@@ -205,7 +205,7 @@ The panel is at `http://<host>:3001`, and Veritas ID at `/id`.
 
 ## Updating
 
-On a server install, `deploy/update.sh` pulls `main`, reinstalls, checks the secrets, rebuilds the panel and restarts `veritas.service`. Your `.env`, `config.lua` and saved roles are gitignored and stay untouched. Run `ensure veritas` in the server console when the bridge changed.
+On a server install, `deploy/update.sh` pulls `main`, reinstalls, checks the secrets, rebuilds the panel and restarts `veritas.service`. [deploy/veritas.service](deploy/veritas.service) is the reference unit; its `ExecStart` has to run `npm start`, because that is what reads Infisical before the server comes up. Your `.env`, `config.lua` and saved roles are gitignored and stay untouched. Run `ensure veritas` in the server console when the bridge changed.
 
 Every run ends with the secret verdict, so you can see at a glance whether the host is actually running on the vault:
 
