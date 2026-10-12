@@ -20,7 +20,8 @@ npm --prefix backend ci --omit=dev
 # because an install with a complete backend/.env runs whatever the vault says (BACKEND.md §5)
 echo "==> Secrets"
 SECRETS_CODE=0
-npm --prefix backend run --silent secrets || SECRETS_CODE=$?
+# node directly: npm as root in a tree owned by the service user adds its own failures
+node backend/scripts/secrets-report.js || SECRETS_CODE=$?
 
 case "$SECRETS_CODE" in
     0) SECRETS_VERDICT="All secrets synced from Infisical." ;;
@@ -53,7 +54,7 @@ fi
 echo
 echo "-------------------------------------------------------------"
 echo "  Secrets: $SECRETS_VERDICT"
-echo "           Details above, or run: npm --prefix backend run secrets"
+echo "           Details above, or run: node backend/scripts/secrets-report.js"
 echo "-------------------------------------------------------------"
 echo
 echo "Done. The FiveM resource is not reloaded by this script:"
