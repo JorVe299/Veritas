@@ -4,7 +4,6 @@ import SessionMenu from './SessionMenu';
 
 /**
  * Home is the wordmark, not an area button: home is not a work area
- * showSession is false without a configured Discord login: nobody could be signed in
  * Permissions sits here, not in SessionMenu: it must stay reachable without a login
  */
 export default function TopBar({

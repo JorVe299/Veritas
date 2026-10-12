@@ -5,9 +5,8 @@ const perms = require('../utils/permissions');
 
 const router = express.Router();
 
-// Login disabled: no roles, enforce() passes everything, so canEdit must say true as well
-const authDisabled = (req) => !req.user;
-const mayEdit = (req) => authDisabled(req) || req.user?.role === perms.OWNER_ROLE;
+// No session reaches this far: requireAuth 401s, and without Discord configured it 503s
+const mayEdit = (req) => req.user?.role === perms.OWNER_ROLE;
 
 function guard(req, res) {
     if (mayEdit(req)) return true;
@@ -49,7 +48,6 @@ router.get('/api/permissions', (req, res) => {
             label: role ? perms.labelOf(role) : null,
             capabilities: role ? perms.capabilitiesOf(role) : [],
             canEdit,
-            authDisabled: authDisabled(req),
         },
         // Ranking decides between two matching roles
         hint: 'The order of this list is the ranking. Somebody who matches two roles gets the higher one.',

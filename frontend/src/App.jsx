@@ -3,6 +3,7 @@ import { startDiscordLogin } from './api';
 import AuthScreen from './components/AuthScreen';
 import PortalGate from './components/PortalGate';
 import PortalScreen from './components/PortalScreen';
+import SetupScreen from './components/SetupScreen';
 import Workspace from './components/Workspace';
 import { useAuth } from './lib/useAuth';
 import { navigate, PORTAL_PATH, surfaceFor, usePath } from './lib/useSurface';
@@ -37,9 +38,7 @@ function App() {
     const goPortal = useCallback(() => navigate(PORTAL_PATH), []);
     const goPanel = useCallback(() => navigate('/'), []);
 
-    // Auth disabled means no account: Veritas ID could not tell whose characters to show
     const portalOnly = auth.authenticated
-        && !auth.authDisabled
         && !panelIsUsable(auth.user)
         // Empty role without portal access stays on the panel: its empty state explains
         && (!hasPanelAccess(auth.user) || auth.user?.portal === true);
@@ -64,8 +63,8 @@ function App() {
             return <PortalGate mode="offline" error={auth.error} onRetry={auth.recheck} />;
         }
 
-        // No Discord: Veritas ID cannot run, so no sign-in button that leads nowhere
-        if (auth.authDisabled) {
+        // Unconfigured: Veritas ID cannot run, so no sign-in button that leads nowhere
+        if (auth.setupRequired) {
             return <PortalGate mode="unavailable" />;
         }
 
@@ -100,6 +99,11 @@ function App() {
         return <AuthScreen mode="offline" error={auth.error} onRetry={auth.recheck} />;
     }
 
+    // Before sign-in: the panel is locked until Discord is configured
+    if (auth.setupRequired) {
+        return <SetupScreen setup={auth.setup} onRetry={auth.recheck} />;
+    }
+
     if (!auth.authenticated) {
         return (
             <AuthScreen
@@ -114,8 +118,6 @@ function App() {
     return (
         <Workspace
             user={auth.user}
-            authDisabled={auth.authDisabled}
-            warning={auth.warning}
             signingOut={auth.signingOut}
             onSignOut={auth.signOut}
             permissionNotice={auth.permissionNotice}

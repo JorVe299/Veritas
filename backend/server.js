@@ -98,6 +98,19 @@ app.listen(PORT, () => {
     console.log(`Bridge expected at ${FIVEM_API_URL}`);
     console.log(`[Data] Jobs: ${Object.keys(getJobs()).length}, Items: ${Object.keys(getItems()).length}, Vehicles: ${Object.keys(getVehicles()).length}`);
 
+    if (!auth.ENABLED) {
+        const needs = auth.setupNeeds();
+        console.warn('');
+        console.warn('  ==================== SETUP REQUIRED ====================');
+        console.warn('  !  Discord sign-in is not configured, so the panel is locked:');
+        console.warn('  !  every page shows the setup screen and the API answers 503.');
+        console.warn(`  !  Set in ${needs.envFile}: ${needs.missing.join(', ')}`);
+        console.warn('  !  Then map an owner (DISCORD_OWNER_IDS or DISCORD_ROLE_OWNER)');
+        console.warn('  !  and restart. README.md "Setting it up" walks through it.');
+        console.warn('  ========================================================');
+        console.warn('');
+    }
+
     if (auth.ENABLED) {
         const summary = auth.mappingSummary();
         const total = summary.reduce((n, r) => n + r.users + r.guildRoles, 0);

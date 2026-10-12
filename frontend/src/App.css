@@ -1650,6 +1650,28 @@
     margin-top: var(--s-1);
 }
 
+/* Operator instructions on the setup screen; markers inside the card, not in its padding */
+.gate__steps {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-2);
+    margin: 0;
+    padding-left: var(--s-4);
+    list-style: decimal;
+    font-size: var(--fs-sm);
+    color: var(--c-text-muted);
+}
+
+.gate__key {
+    padding: 0.05rem var(--s-1);
+    font-size: var(--fs-sm);
+    color: var(--c-text);
+    background: var(--c-surface-2);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-tile);
+    word-break: break-word;
+}
+
 /* --- Session in the top bar -------------------------------------------- */
 
 .session {

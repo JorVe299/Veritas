@@ -12,7 +12,7 @@ const REQUIRED = [
     'SESSION_SECRET',
 ];
 
-// Discord sign-in is all-or-nothing: configured means every one of these carries a value
+// Always required: without all three the panel locks and serves only its setup screen
 const DISCORD_SET = ['DISCORD_CLIENT_ID', 'DISCORD_CLIENT_SECRET', 'DISCORD_REDIRECT_URI'];
 
 // One owner mapping has to exist, either one satisfies it (§4: the owner can never be locked out)
@@ -63,10 +63,7 @@ const SELF = /^INFISICAL_/;
  */
 function report({ template = [], infisical = {}, local = {} } = {}) {
     const rows = [];
-    const required = new Set(REQUIRED);
-
-    const discordWanted = DISCORD_SET.some(k => filled(infisical[k]) || filled(local[k]));
-    if (discordWanted) for (const key of DISCORD_SET) required.add(key);
+    const required = new Set([...REQUIRED, ...DISCORD_SET]);
 
     const ownerSatisfied = OWNER_EITHER.some(k => filled(infisical[k]) || filled(local[k]));
 

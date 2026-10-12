@@ -3,6 +3,7 @@ import {
     DEFAULT_LOGIN_URL,
     fetchSession,
     onForbidden,
+    onSetupRequired,
     onUnauthorized,
     safeLoginUrl,
     signOutRequest,
@@ -14,10 +15,10 @@ const LOADING = { phase: 'loading', session: null, error: null, notice: null, re
 
 const SIGNED_OUT = {
     authenticated: false,
-    authDisabled: false,
+    setupRequired: false,
+    setup: null,
     user: null,
     loginUrl: DEFAULT_LOGIN_URL,
-    warning: null,
     ended: null,
 };
 
@@ -55,17 +56,18 @@ function hasCapabilities(user) {
 function readSession(data) {
     if (!data || typeof data !== 'object') return SIGNED_OUT;
 
-    const authDisabled = data.authDisabled === true;
     const user = data.user && typeof data.user === 'object' ? data.user : null;
-    const warning = typeof data.warning === 'string' ? data.warning.trim() : '';
+    // Plain object only: an array or a string would reach the setup screen as fields
+    const setup = data.setup && typeof data.setup === 'object' && !Array.isArray(data.setup)
+        ? data.setup
+        : null;
 
     return {
         authenticated: data.authenticated === true,
-        authDisabled,
-        // Auth disabled: no user, even when authenticated is true
-        user: authDisabled ? null : user,
+        setupRequired: data.setupRequired === true,
+        setup,
+        user,
         loginUrl: safeLoginUrl(data.loginUrl),
-        warning: warning || null,
         // Set only when the server ended the session, never for a missing cookie
         ended: readReason(data.ended),
     };
@@ -91,6 +93,8 @@ export function useAuth() {
     const lastChecked = useRef(0);
     // Last rendered session for refresh(): a state updater after an await runs too late
     const current = useRef(null);
+    // Concurrent 503s share one setup recheck
+    const setupPending = useRef(false);
 
     useEffect(() => {
         // A slower, older answer must not overwrite a newer one
@@ -99,6 +103,7 @@ export function useAuth() {
         fetchSession()
             .then((res) => {
                 if (cancelled) return;
+                setupPending.current = false;
                 lastChecked.current = Date.now();
                 const session = readSession(res.data);
                 // Ended by the server since the last visit: show the reason too
@@ -109,6 +114,7 @@ export function useAuth() {
             })
             .catch((err) => {
                 if (cancelled) return;
+                setupPending.current = false;
                 console.error('Session check failed:', err);
                 setState({ phase: 'unreachable', session: null, error: describe(err), notice: null, reason: null });
             });
@@ -167,6 +173,13 @@ export function useAuth() {
         refresh();
     }), [refresh]);
 
+    // 503 with setupRequired: config lost mid-session; /auth/me carries the setup detail
+    useEffect(() => onSetupRequired(() => {
+        if (setupPending.current || current.current?.setupRequired) return;
+        setupPending.current = true;
+        recheck();
+    }), [recheck]);
+
     // 401: body.error is the server's reason for ending the session, if it gave one
     useEffect(() => onUnauthorized((body) => {
         const said = readReason(body?.error);
@@ -190,10 +203,10 @@ export function useAuth() {
         current.current = session;
     }, [session]);
 
-    // Nothing to poll when signed out, or without Discord: no role can change
+    // Nothing to poll when signed out, or while unconfigured: no role can change
     const polling = state.phase === 'ready'
         && session?.authenticated === true
-        && session?.authDisabled !== true;
+        && session?.setupRequired !== true;
 
     // Role changes arrive without a new sign-in: once a minute while visible and on return,
     // never twice within the minute; idle while hidden
@@ -265,9 +278,10 @@ export function useAuth() {
         // Server's reason for an 'ended' notice; null otherwise
         noticeReason: state.reason,
         authenticated: session?.authenticated === true,
-        authDisabled: session?.authDisabled === true,
+        setupRequired: session?.setupRequired === true,
+        // Server's setup detail while setupRequired; null otherwise
+        setup: session?.setup ?? null,
         user: session?.user ?? null,
-        warning: session?.warning ?? null,
         loginUrl: session?.loginUrl || DEFAULT_LOGIN_URL,
         signingOut,
         signOut,

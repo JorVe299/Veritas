@@ -130,9 +130,10 @@ export default function PortalGate({ mode, notice = null, noticeReason = null, e
 
                 {mode === 'unavailable' && (
                     <div className="idgate__block">
-                        <h1 className="idgate__title">Veritas ID is not set up here</h1>
+                        <h1 className="idgate__title">This server is not set up yet</h1>
                         <p className="idgate__text">
-                            No Discord sign-in is configured. Ask the server staff.
+                            Veritas ID cannot run until the server staff finish setting it up.
+                            Please come back later.
                         </p>
                     </div>
                 )}

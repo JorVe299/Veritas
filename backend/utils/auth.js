@@ -70,19 +70,40 @@ function mappingSummary() {
     });
 }
 
-// No Discord app: panel runs open (startup warns) rather than locking everyone out
+// No Discord app: nobody can be told apart, so the panel locks itself (see requireAuth)
 const ENABLED = Boolean(CLIENT_ID && CLIENT_SECRET && REDIRECT_URI);
 
 // No SESSION_SECRET: random per start; cookies stay unforgeable, restarts sign everyone out
 const JWT_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
 const EPHEMERAL_SECRET = !process.env.SESSION_SECRET;
 
-/** Misconfigurations that silently open the panel or lock everyone out; printed at startup */
+/**
+ * What the setup screen needs while ENABLED is false: key names and yes/no, never a value
+ * Unauthenticated callers read this, so it names what is missing and nothing about the host
+ */
+function setupNeeds() {
+    const required = {
+        DISCORD_CLIENT_ID: CLIENT_ID,
+        DISCORD_CLIENT_SECRET: CLIENT_SECRET,
+        DISCORD_REDIRECT_URI: REDIRECT_URI
+    };
+    return {
+        missing: Object.keys(required).filter(key => !required[key]),
+        sessionSecret: !EPHEMERAL_SECRET,
+        envFile: 'backend/.env'
+    };
+}
+
+/** Misconfigurations that lock everyone out or weaken the login; printed at startup */
 function configProblems() {
     const problems = [];
 
+    // The setup banner already says the panel is locked; the mapping checks below would only
+    // repeat it. SESSION_SECRET still matters: it is wanted before the first sign-in works.
     if (!ENABLED) {
-        problems.push('DISCORD_CLIENT_ID / DISCORD_CLIENT_SECRET / DISCORD_REDIRECT_URI missing - the panel runs WITHOUT a login.');
+        if (EPHEMERAL_SECRET) {
+            problems.push('SESSION_SECRET missing - every restart signs everyone out.');
+        }
         return problems;
     }
     const summary = mappingSummary();
@@ -466,6 +487,12 @@ async function currentSession(req, res) {
 
 // --- Middleware -----------------------------------------------------------
 
+const SETUP_REQUIRED_MESSAGE =
+    'This panel is not set up yet. Discord sign-in has to be configured before anyone can use it.';
+
+// The only route open while the panel is unconfigured; lower case, compared lower case
+const SETUP_OPEN_PATH = '/api/auth/me';
+
 // SECURITY: case-insensitive like Express routing; '/API/players' must not skip the login
 function isApiPath(p) {
     return p.toLowerCase().startsWith('/api/');
@@ -477,12 +504,24 @@ function isAuthPath(p) {
 
 // Guards /api except /api/auth; static files stay public (data only flows through /api)
 async function requireAuth(req, res, next) {
-    if (!ENABLED) return next();
     if (!isApiPath(req.path)) return next();
-    if (isAuthPath(req.path)) return next();
 
     // SECURITY: set only by a matching resource secret; enforce() still gates what it may do
     if (req.resource) return next();
+
+    // SECURITY: no Discord app means no way to tell anyone apart, so the whole API stays shut
+    // instead of running open. /api/auth/me is the one way through: the setup screen asks it
+    // what is missing. Resource calls pass above, having proved their own secret.
+    if (!ENABLED) {
+        if (req.path.toLowerCase() === SETUP_OPEN_PATH) return next();
+        return res.status(503).json({
+            error: SETUP_REQUIRED_MESSAGE,
+            setupRequired: true,
+            authenticated: false
+        });
+    }
+
+    if (isAuthPath(req.path)) return next();
 
     const { session, ended } = await currentSession(req, res);
     if (!session) {
@@ -503,7 +542,7 @@ module.exports = {
     SESSION_COOKIE, STATE_COOKIE, SESSION_HOURS,
     roleOrder, mappingFor, mappingSummary, allGuildRoleIds,
     SYNC_SECONDS,
-    configProblems, buildAuthorizeUrl, exchangeCode, fetchDiscordUser,
+    configProblems, setupNeeds, buildAuthorizeUrl, exchangeCode, fetchDiscordUser,
     fetchGuildRoles, authorize, issueSession, readSession, clearSession,
     publicUser, cookieSecure, cookieOptions, requireAuth, currentSession, syncSession,
     sealTokens, unsealTokens, isApiPath, isAuthPath

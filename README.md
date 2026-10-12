@@ -195,8 +195,8 @@ cd backend && npm start
 
 The panel is at `http://<host>:3001`, and Veritas ID at `/id`.
 
-> [!WARNING]
-> Without Discord configured the panel still starts, but anyone who can reach the port can use it — and it says so on every page.
+> [!NOTE]
+> Without Discord configured the panel locks itself: every page shows a setup screen naming the missing settings, and the API answers `503` to everyone. Only the FiveM resource, which authenticates with its own secret, keeps working. Fill in the `DISCORD_*` keys and restart to open it.
 
 > [!TIP]
 > Put it behind HTTPS (Caddy, nginx) before opening it to the internet. The sign-in cookies then mark themselves `secure` on their own, because `DISCORD_REDIRECT_URI` is an `https://` URL; `COOKIE_SECURE` exists only to override that.
@@ -224,6 +224,7 @@ The other verdicts are `PARTLY SYNCED` (some settings still come from `backend/.
 
 The panel reaches a live roleplay database, so the defences are part of the product rather than an afterthought:
 
+- **No sign-in configured means no panel.** Without a Discord app the backend cannot tell anyone apart, so it serves a setup screen instead of the panel and refuses every data route.
 - **Discord sign-in**, with the session in a signed cookie. The Discord tokens inside it are sealed (AES-256-GCM), and roles are re-checked against Discord while someone works, so a withdrawn role takes effect without a new sign-in.
 - **Every route carries a permission rule.** A route without one is denied rather than allowed, and the owner's rights cannot be revoked, so the panel cannot lock its own owner out.
 - **CSRF is refused by origin:** a state-changing `/api` request must name this host in `Origin` or `Referer`, backed by `SameSite=Lax` cookies.

@@ -83,7 +83,7 @@ test('with no owner mapping at all both candidates are reported missing', () => 
     assert.deepEqual(out.missing, ['DISCORD_OWNER_IDS', 'DISCORD_ROLE_OWNER']);
 });
 
-test('the Discord trio is required once any of it is configured', () => {
+test('the rest of the Discord trio is reported when one of it is set', () => {
     const template = [...TEMPLATE, 'DISCORD_CLIENT_ID', 'DISCORD_CLIENT_SECRET', 'DISCORD_REDIRECT_URI'];
     const out = secrets.report({
         template,
@@ -94,12 +94,14 @@ test('the Discord trio is required once any of it is configured', () => {
     assert.deepEqual(out.missing, ['DISCORD_CLIENT_SECRET', 'DISCORD_REDIRECT_URI']);
 });
 
-test('Discord stays optional while none of it is configured', () => {
+// The panel locks without it, so an empty trio is a missing setting, not an unset one
+test('the Discord trio is required even when none of it is configured', () => {
     const template = [...TEMPLATE, 'DISCORD_CLIENT_ID', 'DISCORD_CLIENT_SECRET', 'DISCORD_REDIRECT_URI'];
     const out = secrets.report({ template, infisical: complete(), local: {} });
 
-    assert.deepEqual(out.missing, []);
-    assert.equal(out.ok, true);
+    assert.deepEqual(out.missing,
+        ['DISCORD_CLIENT_ID', 'DISCORD_CLIENT_SECRET', 'DISCORD_REDIRECT_URI']);
+    assert.equal(out.ok, false);
 });
 
 test('a vault key the template does not declare is reported as drift', () => {

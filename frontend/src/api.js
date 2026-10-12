@@ -50,6 +50,16 @@ const isAuthRoute = (url) => {
     return path.startsWith('/auth/') || path.startsWith('auth/') || path.startsWith('/api/auth/');
 };
 
+// --- Global 503 handling --------------------------------------------------
+// Discord config lost after a restart: every route locks, the app returns to the setup screen
+
+const setupRequiredHandlers = new Set();
+
+export function onSetupRequired(handler) {
+    setupRequiredHandlers.add(handler);
+    return () => { setupRequiredHandlers.delete(handler); };
+}
+
 // --- Global 403 handling --------------------------------------------------
 // Permission revoked mid-work by a matrix edit: reported once, not by every card
 
@@ -88,6 +98,11 @@ api.interceptors.response.use(
             // Body passed on: its `error` replaces a generic "expired" on the sign-in screen
             const body = error.response?.data || {};
             unauthorizedHandlers.forEach((handler) => handler(body));
+        }
+
+        if (status === 503 && !isAuthRoute(url) && error.response?.data?.setupRequired === true) {
+            const body = error.response?.data || {};
+            setupRequiredHandlers.forEach((handler) => handler(body));
         }
 
         if (status === 403 && !isAuthRoute(url) && !isPortalRoute(url) && !isPermissionWrite(error.config)) {

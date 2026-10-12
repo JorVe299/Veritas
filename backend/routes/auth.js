@@ -24,20 +24,21 @@ function panelRedirect(res, params, surface) {
 // --- Who am I -------------------------------------------------------------
 // Always 200: "not signed in" is not an error for the frontend
 // Runs the live role check, so a waiting frontend picks up Discord role changes
+// Open while the panel is unconfigured: the setup screen is what it answers then
 router.get('/api/auth/me', async (req, res) => {
     if (!auth.ENABLED) {
         return res.json({
-            authenticated: true,
-            authDisabled: true,
+            authenticated: false,
+            setupRequired: true,
             user: null,
-            warning: 'Discord login is not configured - this panel is open to anyone who can reach it.'
+            setup: auth.setupNeeds()
         });
     }
 
     const { session, ended } = await auth.currentSession(req, res);
     res.json({
         authenticated: Boolean(session),
-        authDisabled: false,
+        setupRequired: false,
         user: auth.publicUser(session),
         loginUrl: '/api/auth/login',
         // Set only when the live check ended the session

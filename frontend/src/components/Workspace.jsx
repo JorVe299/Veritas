@@ -33,18 +33,13 @@ const SERVER_HINTS = {
     system: 'What this installation is, when something looks wrong.',
 };
 
-const OPEN_PANEL_WARNING =
-    'Discord login is not configured - this panel is open to anyone who can reach it.';
-
 /**
- * Panel shell; mounted only after the session is confirmed (or auth is off): no early 401s
+ * Panel shell; mounted only after the session is confirmed: no early 401s
  * Cards lacking their view permission are not mounted: a first-load 403 would read as a fault
  * Cards are keyed per citizen: every form restarts when the selection changes
  */
 export default function Workspace({
     user,
-    authDisabled,
-    warning,
     signingOut,
     onSignOut,
     permissionNotice = false,
@@ -76,10 +71,7 @@ export default function Workspace({
     const [deletedNote, setDeletedNote] = useState(null);
 
     // Keyed on user: a session reload updates every card's permissions, no re-login
-    const permissions = useMemo(
-        () => buildPermissions(user, authDisabled),
-        [user, authDisabled],
-    );
+    const permissions = useMemo(() => buildPermissions(user), [user]);
     const { can } = permissions;
 
     const canViewPlayers = can('players.view');
@@ -148,8 +140,6 @@ export default function Workspace({
     }, []);
 
     const bridgeDown = Boolean(roster.bridge && !roster.bridge.reachable);
-    const warned = authDisabled || permissionNotice;
-
     // Online only counts while the bridge answers; otherwise unknown, never claimed
     const onlineNow = Boolean(selectedPlayer?.isOnline && !bridgeDown);
 
@@ -280,7 +270,7 @@ export default function Workspace({
 
     return (
         <CanContext.Provider value={permissions}>
-            <div className={`app${warned ? ' app--warned' : ''}`}>
+            <div className={`app${permissionNotice ? ' app--warned' : ''}`}>
                 <PlateSprite />
 
                 <TopBar
@@ -296,7 +286,7 @@ export default function Workspace({
                     status={roster.status}
                     user={user}
                     roleLabel={permissions.roleLabel}
-                    showSession={!authDisabled}
+                    showSession
                     showPermissions={canEditPermissions}
                     onOpenPermissions={() => setPermissionsOpen(true)}
                     onOpenPortal={onOpenPortal}
@@ -304,35 +294,22 @@ export default function Workspace({
                     onSignOut={onSignOut}
                 />
 
-                {/* One shared grid row outside the stage: two banners must not starve it */}
-                {warned && (
+                {/* Once here, not per card: the cards only see an unexplained 403 */}
+                {permissionNotice && (
                     <div className="banners">
-                        {/* Not dismissible: anyone who can reach the port can create money */}
-                        {authDisabled && (
-                            <StatusNote
-                                className="banner"
-                                tone="warn"
-                                title="Anyone who can reach this panel can use it"
-                                detail={warning || OPEN_PANEL_WARNING}
-                            />
-                        )}
-
-                        {/* Once here, not per card: the cards only see an unexplained 403 */}
-                        {permissionNotice && (
-                            <div className="banner banner--perm" role="status">
-                                <Icon name="info" size={16} />
-                                <span className="banner__text">
-                                    Your permissions changed — some actions are no longer available.
-                                </span>
-                                <button
-                                    type="button"
-                                    className="btn btn--ghost btn--sm"
-                                    onClick={onDismissPermissionNotice}
-                                >
-                                    Dismiss
-                                </button>
-                            </div>
-                        )}
+                        <div className="banner banner--perm" role="status">
+                            <Icon name="info" size={16} />
+                            <span className="banner__text">
+                                Your permissions changed — some actions are no longer available.
+                            </span>
+                            <button
+                                type="button"
+                                className="btn btn--ghost btn--sm"
+                                onClick={onDismissPermissionNotice}
+                            >
+                                Dismiss
+                            </button>
+                        </div>
                     </div>
                 )}
 

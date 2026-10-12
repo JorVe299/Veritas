@@ -14,13 +14,8 @@ export const CanContext = createContext(DENIED);
 /**
  * From the /api/auth/me user; matrix changes apply on the next session refresh, no re-login
  * Null role: empty capabilities, every can() false (the backend 403s every admin route)
- * authDisabled: everything allowed, as the backend then lets everything through
  */
-export function buildPermissions(user, authDisabled = false) {
-    if (authDisabled) {
-        return { can: () => true, role: null, roleLabel: null };
-    }
-
+export function buildPermissions(user) {
     const list = Array.isArray(user?.capabilities)
         ? user.capabilities.filter((id) => typeof id === 'string')
         : null;
