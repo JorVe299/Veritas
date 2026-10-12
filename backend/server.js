@@ -115,7 +115,7 @@ app.listen(PORT, () => {
         console.warn('  ==================== ATTENTION ====================');
         console.warn('  !  Infisical is configured but was not read: this process did not start');
         console.warn('  !  through scripts/start.js, so backend/.env alone is in effect.');
-        console.warn('  !  Point the service at it: ExecStart=/usr/bin/npm start (see deploy/).');
+        console.warn('  !  Point ExecStart at scripts/start.js (deploy/veritas.service).');
         console.warn('  ===================================================');
         console.warn('');
     }
