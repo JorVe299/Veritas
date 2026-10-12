@@ -1,0 +1,31 @@
+# Reference Caddyfile for the panel. Copy to /etc/caddy/Caddyfile, replace the host name,
+# then: systemctl restart caddy. Caddy gets and renews the certificate on its own.
+#
+# The backend keeps listening on :3001; the firewall is what stops anyone reaching it
+# directly (see README "Putting it behind HTTPS"). Nothing in the panel needs to change.
+
+# Only needed when Cloudflare (or any other proxy) sits in front: without this Caddy treats
+# the proxy as the client, and every visitor shares one rate-limit bucket.
+# Refresh from https://www.cloudflare.com/ips-v4 when Cloudflare announces a change.
+{
+	servers {
+		trusted_proxies static 173.245.48.0/20 103.21.244.0/22 103.22.200.0/22 103.31.4.0/22 141.101.64.0/18 108.162.192.0/18 190.93.240.0/20 188.114.96.0/20 197.234.240.0/22 198.41.128.0/17 162.158.0.0/15 104.16.0.0/13 104.24.0.0/14 172.64.0.0/13 131.0.72.0/22
+	}
+}
+
+panel.example.com {
+	encode zstd gzip
+
+	reverse_proxy 127.0.0.1:3001
+
+	header {
+		# HTTPS only from here on. No "preload": that is a commitment to a public list.
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		# The panel is never meant to be framed.
+		X-Frame-Options "DENY"
+		# Caddy's own advert is noise on an admin panel.
+		-Server
+	}
+}

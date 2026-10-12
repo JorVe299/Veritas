@@ -199,7 +199,30 @@ The panel is at `http://<host>:3001`, and Veritas ID at `/id`.
 > Without Discord configured the panel locks itself: every page shows a setup screen naming the missing settings, and the API answers `503` to everyone. Only the FiveM resource, which authenticates with its own secret, keeps working. Fill in the `DISCORD_*` keys and restart to open it.
 
 > [!TIP]
-> Put it behind HTTPS (Caddy, nginx) before opening it to the internet. The sign-in cookies then mark themselves `secure` on their own, because `DISCORD_REDIRECT_URI` is an `https://` URL; `COOKIE_SECURE` exists only to override that.
+> Put it behind HTTPS before opening it to the internet, see below.
+
+### 6. Put it behind HTTPS
+
+[deploy/Caddyfile](deploy/Caddyfile) is the reference: copy it to `/etc/caddy/Caddyfile`, put your host name in, `systemctl restart caddy`. Caddy obtains and renews the certificate itself, terminates TLS and proxies to `127.0.0.1:3001`.
+
+Then close the backend's own port, so the panel is reachable only through Caddy:
+
+```bash
+ufw delete allow 3001/tcp     # repeat until no 3001 rule is left, v6 included
+ufw status                    # 3001 must be gone from both lists
+```
+
+Three settings follow from the switch:
+
+| Key | Value | Why |
+|---|---|---|
+| `DISCORD_REDIRECT_URI` | `https://<host>/api/auth/callback` | Also add it under Redirects in the Discord Developer Portal, or sign-in breaks. |
+| `PANEL_ORIGIN` | `https://<host>` | Where the sign-in returns to. |
+| `TRUST_PROXY` | `1`, or `2` behind Cloudflare as well | How many proxies sit in front. Wrong, and every visitor shares one rate-limit bucket. |
+
+`COOKIE_SECURE` can stay empty: the cookies mark themselves `secure` because `DISCORD_REDIRECT_URI` is now an `https://` URL. It exists only to override that — an explicit `false` left over from a plain-http install keeps the flag off and must be cleared.
+
+Behind Cloudflare, set the zone's SSL/TLS mode to **Full (strict)**. In *Flexible* the edge talks plain HTTP to Caddy, Caddy answers "go to HTTPS", and the browser loops.
 
 ---
 
