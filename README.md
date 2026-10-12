@@ -250,4 +250,6 @@ cd frontend  && npm test      # vitest run
 cd frontend  && npm run lint  # eslint
 ```
 
+Brand files live in [frontend/public/brand](frontend/public/brand). The link preview that Discord and Slack draw for the panel's own URL comes from `veritas-og-1200x630.jpg` there, named by the Open Graph tags in `frontend/index.html`; it stays reachable even while the panel is locked, so an unconfigured install still unfurls. This repository's preview card is a separate upload, see [docs/brand](docs/brand/README.md).
+
 For sign-in during development, set `PANEL_ORIGIN=http://localhost:5173` in `backend/.env`. Every setting is documented in [backend/.env.example](backend/.env.example); the panel's own build and test setup is in [frontend/README.md](frontend/README.md).

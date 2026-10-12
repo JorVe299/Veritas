@@ -30,9 +30,10 @@ test('non-string entries are dropped instead of granting something', () => {
     assert.equal(can('7'), false);
 });
 
-test('disabled auth allows everything, as the backend then does too', () => {
+// No open-panel mode left: an unconfigured panel never reaches the workspace
+test('a second argument grants nothing', () => {
     const permissions = buildPermissions(null, true);
-    assert.equal(permissions.can('anything.at.all'), true);
+    assert.equal(permissions.can('anything.at.all'), false);
     assert.equal(permissions.role, null);
     assert.equal(permissions.roleLabel, null);
 });
