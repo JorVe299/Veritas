@@ -1,63 +1,68 @@
 #!/usr/bin/env bash
 # Server update: pull, reinstall, check secrets, build, restart (/opt/veritas/deploy/update.sh)
 # Gitignored files (backend/.env, backend/data/*.json, veritas/config.lua) stay untouched
-set -euo pipefail
 
-REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$REPO"
+# Braces around the whole script: the pull below replaces this very file, and bash
+# otherwise reads it on in byte offsets and runs the leftovers of the new one
+{
+    set -euo pipefail
 
-BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+    REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+    cd "$REPO"
 
-echo "==> Pulling $BRANCH"
-git fetch --prune origin
-# Hard reset, not merge: the server is a copy; local edits would block the next pull
-git reset --hard "origin/$BRANCH"
+    BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 
-echo "==> Backend dependencies"
-npm --prefix backend ci --omit=dev
+    echo "==> Pulling $BRANCH"
+    git fetch --prune origin
+    # Hard reset, not merge: the server is a copy; local edits would block the next pull
+    git reset --hard "origin/$BRANCH"
 
-# Exit codes of scripts/secrets-report.js; the deploy reports them, it never stops on them,
-# because an install with a complete backend/.env runs whatever the vault says (BACKEND.md §5)
-echo "==> Secrets"
-SECRETS_CODE=0
-# node directly: npm as root in a tree owned by the service user adds its own failures
-node backend/scripts/secrets-report.js || SECRETS_CODE=$?
+    echo "==> Backend dependencies"
+    npm --prefix backend ci --omit=dev
 
-case "$SECRETS_CODE" in
-    0) SECRETS_VERDICT="All secrets synced from Infisical." ;;
-    1) SECRETS_VERDICT="MISSING SECRETS - required settings are in neither Infisical nor backend/.env." ;;
-    2) SECRETS_VERDICT="PARTLY SYNCED - some settings come from backend/.env, not from Infisical." ;;
-    *) SECRETS_VERDICT="NOT SYNCED - Infisical is not configured or could not be read; backend/.env is in use." ;;
-esac
+    # Exit codes of scripts/secrets-report.js; the deploy reports them, it never stops on them,
+    # because an install with a complete backend/.env runs whatever the vault says (BACKEND.md §5)
+    echo "==> Secrets"
+    SECRETS_CODE=0
+    # node directly: npm as root in a tree owned by the service user adds its own failures
+    node backend/scripts/secrets-report.js || SECRETS_CODE=$?
 
-echo "==> Building the panel"
-npm --prefix frontend ci
-npm --prefix frontend run build
+    case "$SECRETS_CODE" in
+        0) SECRETS_VERDICT="All secrets synced from Infisical." ;;
+        1) SECRETS_VERDICT="MISSING SECRETS - required settings are in neither Infisical nor backend/.env." ;;
+        2) SECRETS_VERDICT="PARTLY SYNCED - some settings come from backend/.env, not from Infisical." ;;
+        *) SECRETS_VERDICT="NOT SYNCED - Infisical is not configured or could not be read; backend/.env is in use." ;;
+    esac
 
-# Restart needs root (or sudo rights for the service); otherwise say so
-if systemctl is-enabled --quiet veritas 2>/dev/null; then
-    # A unit pointed straight at server.js skips scripts/start.js, and Infisical is never read
-    EXEC="$(systemctl show veritas -p ExecStart --value 2>/dev/null || true)"
-    if [ -n "$EXEC" ] && ! printf '%s' "$EXEC" | grep -qE 'npm|start\.js'; then
-        SECRETS_VERDICT="$SECRETS_VERDICT
-           WARNING: veritas.service starts the backend without scripts/start.js,
-           so Infisical is skipped at runtime. Compare deploy/veritas.service."
+    echo "==> Building the panel"
+    npm --prefix frontend ci
+    npm --prefix frontend run build
+
+    # Restart needs root (or sudo rights for the service); otherwise say so
+    if systemctl is-enabled --quiet veritas 2>/dev/null; then
+        # A unit pointed straight at server.js skips scripts/start.js, and Infisical is never read
+        EXEC="$(systemctl show veritas -p ExecStart --value 2>/dev/null || true)"
+        if [ -n "$EXEC" ] && ! printf '%s' "$EXEC" | grep -qE 'npm|start\.js'; then
+            SECRETS_VERDICT="$SECRETS_VERDICT
+               WARNING: veritas.service starts the backend without scripts/start.js,
+               so Infisical is skipped at runtime. Compare deploy/veritas.service."
+        fi
+
+        echo "==> Restarting veritas.service"
+        systemctl restart veritas
+    else
+        echo "==> veritas.service not found - restart the backend yourself"
     fi
 
-    echo "==> Restarting veritas.service"
-    systemctl restart veritas
-else
-    echo "==> veritas.service not found - restart the backend yourself"
-fi
+    # Repeated here: the secret verdict scrolls away behind the frontend build
+    echo
+    echo "-------------------------------------------------------------"
+    echo "  Secrets: $SECRETS_VERDICT"
+    echo "           Details above, or run: node backend/scripts/secrets-report.js"
+    echo "-------------------------------------------------------------"
+    echo
+    echo "Done. The FiveM resource is not reloaded by this script:"
+    echo "  type 'ensure veritas' in the server console if the bridge changed."
 
-# Repeated here: the secret verdict scrolls away behind the frontend build
-echo
-echo "-------------------------------------------------------------"
-echo "  Secrets: $SECRETS_VERDICT"
-echo "           Details above, or run: node backend/scripts/secrets-report.js"
-echo "-------------------------------------------------------------"
-echo
-echo "Done. The FiveM resource is not reloaded by this script:"
-echo "  type 'ensure veritas' in the server console if the bridge changed."
-
-exit 0
+    exit 0
+}
