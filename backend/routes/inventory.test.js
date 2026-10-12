@@ -40,7 +40,7 @@ fs.writeFileSync(path.join(IMAGE_DIR, 'WEAPON_STUNGUN.png'), 'png');
 fs.writeFileSync(path.join(OUTSIDE_DIR, 'secret.png'), 'png');
 process.env.ITEM_IMAGE_PATH = IMAGE_DIR;
 
-const { router, imageFileFor } = require('./inventory');
+const { router, imageFileFor, refreshImageIndex } = require('./inventory');
 
 test.after(() => {
     fs.rmSync(IMAGE_DIR, { recursive: true, force: true });
@@ -98,7 +98,7 @@ test('the catalog lookup ignores case: ox weapons are upper-case, core lists low
 });
 
 // --- Item image paths -----------------------------------------------------
-// SECURITY: the item name becomes a file name; nothing may resolve outside the image folder
+// SECURITY: the item name picks an image; nothing may resolve outside the image folder
 
 async function getImage(encodedName) {
     const app = express();
@@ -169,4 +169,100 @@ test('the image route answers 404 for a traversing name and 200 for a real item'
     for (const name of ['..%2F..%2Fetc%2Fpasswd', '%2Fetc%2Fpasswd', 'water.png', '..%5Csecret']) {
         assert.equal(await getImage(name), 404, `${name} must not be served`);
     }
+});
+
+// --- The image index ------------------------------------------------------
+// SECURITY: the served path comes from the folder listing; the request only picks a key
+
+test('the preferred extension is png, then webp, then jpg', () => {
+    for (const ext of ['jpg', 'webp', 'png']) {
+        fs.writeFileSync(path.join(IMAGE_DIR, `soda.${ext}`), ext);
+    }
+    fs.writeFileSync(path.join(IMAGE_DIR, 'cola.jpg'), 'jpg');
+    fs.writeFileSync(path.join(IMAGE_DIR, 'cola.webp'), 'webp');
+    refreshImageIndex();
+
+    assert.equal(imageFileFor('soda'), path.join(IMAGE_DIR, 'soda.png'));
+    assert.equal(imageFileFor('cola'), path.join(IMAGE_DIR, 'cola.webp'));
+});
+
+test('a folder and an unsupported extension are not item images', () => {
+    fs.mkdirSync(path.join(IMAGE_DIR, 'folder.png'), { recursive: true });
+    fs.writeFileSync(path.join(IMAGE_DIR, 'notes.txt'), 'text');
+    refreshImageIndex();
+
+    assert.equal(imageFileFor('folder'), null);
+    assert.equal(imageFileFor('notes'), null);
+});
+
+test('a name the index does not hold reaches the filesystem not at all', () => {
+    refreshImageIndex();
+    const real = fs.readdirSync;
+    let listings = 0;
+    fs.readdirSync = (...args) => {
+        listings++;
+        return real(...args);
+    };
+    try {
+        for (const name of [...ESCAPES, 'water', 'made_up']) imageFileFor(name);
+    } finally {
+        fs.readdirSync = real;
+    }
+    assert.equal(listings, 0, 'a lookup listed the folder');
+});
+
+test('an icon added while the server runs appears once the index is refreshed', () => {
+    refreshImageIndex();
+    fs.writeFileSync(path.join(IMAGE_DIR, 'bandage.png'), 'png');
+    assert.equal(imageFileFor('bandage'), null, 'the cached index must not be bypassed');
+
+    refreshImageIndex();
+    assert.equal(imageFileFor('bandage'), path.join(IMAGE_DIR, 'bandage.png'));
+});
+
+test('an image removed while the server runs stops being served after a refresh', async () => {
+    fs.rmSync(path.join(IMAGE_DIR, 'bandage.png'));
+    refreshImageIndex();
+
+    assert.equal(imageFileFor('bandage'), null);
+    assert.equal(await getImage(encodeURIComponent('bandage')), 404);
+    assert.equal(await getImage(encodeURIComponent('water')), 200);
+});
+
+test('an item name finds its image whatever case either side is written in', async () => {
+    fs.writeFileSync(path.join(IMAGE_DIR, 'medkit.png'), 'png');
+    fs.writeFileSync(path.join(IMAGE_DIR, 'WEAPON_PISTOL.png'), 'png');
+    refreshImageIndex();
+
+    assert.equal(imageFileFor('MEDKIT'), path.join(IMAGE_DIR, 'medkit.png'));
+    assert.equal(imageFileFor('MedKit'), path.join(IMAGE_DIR, 'medkit.png'));
+    assert.equal(imageFileFor('weapon_pistol'), path.join(IMAGE_DIR, 'WEAPON_PISTOL.png'));
+    assert.equal(await getImage(encodeURIComponent('WEAPON_PISTOL')), 200);
+    assert.equal(await getImage(encodeURIComponent('medkit')), 200);
+});
+
+test('an upper-case extension is an item image too', () => {
+    fs.writeFileSync(path.join(IMAGE_DIR, 'tonic.PNG'), 'png');
+    refreshImageIndex();
+
+    assert.equal(imageFileFor('tonic'), path.join(IMAGE_DIR, 'tonic.PNG'));
+});
+
+test('one item spelled two ways resolves to the first file by code point', () => {
+    fs.writeFileSync(path.join(IMAGE_DIR, 'juice.png'), 'png');
+    fs.writeFileSync(path.join(IMAGE_DIR, 'JUICE.png'), 'png');
+    refreshImageIndex();
+
+    // One file where the filesystem folds case, two where it does not
+    const spellings = fs.readdirSync(IMAGE_DIR).filter(n => /^juice\.png$/i.test(n)).sort();
+    assert.equal(imageFileFor('juice'), path.join(IMAGE_DIR, spellings[0]));
+    assert.equal(imageFileFor('JUICE'), imageFileFor('juice'));
+});
+
+test('the better extension beats the file name when both spellings exist', () => {
+    fs.writeFileSync(path.join(IMAGE_DIR, 'BURGER.jpg'), 'jpg');
+    fs.writeFileSync(path.join(IMAGE_DIR, 'burger.png'), 'png');
+    refreshImageIndex();
+
+    assert.equal(imageFileFor('burger'), path.join(IMAGE_DIR, 'burger.png'));
 });

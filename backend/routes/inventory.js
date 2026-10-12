@@ -154,23 +154,78 @@ if (IMAGE_PATH) {
     console.log('[Inventory] no ox_inventory image folder found - the grid falls back to text tiles');
 }
 
-// SECURITY: the item name becomes a file path: strict allowlist (no separator, no dot)
+// SECURITY: the item name only picks an index key: strict allowlist (no separator, no dot)
 const SAFE_ITEM = /^[a-z0-9_-]{1,64}$/i;
 
-// SECURITY: resolved path must stay under IMAGE_PATH; an escape is refused, never trimmed
+// SECURITY: an indexed path must stay under IMAGE_PATH; an escape is refused, never trimmed
 function underImageRoot(file) {
     const resolved = path.resolve(file);
     return resolved === IMAGE_PATH || resolved.startsWith(IMAGE_PATH + path.sep);
 }
 
+// Lower index wins for one item; the extension on disk is compared case-blind
+const IMAGE_EXTENSIONS = ['png', 'webp', 'jpg'];
+
+// Icons appear when a resource is updated: one folder listing a minute, not one per request
+const INDEX_MAX_AGE_MS = 60_000;
+
+let imageIndex = new Map();
+let indexedAt = 0;
+
+// SECURITY: every path in the index comes from the folder listing, so none can be requested
+function buildImageIndex() {
+    const index = new Map();
+    if (!IMAGE_PATH) return index;
+
+    let entries;
+    try {
+        entries = fs.readdirSync(IMAGE_PATH, { withFileTypes: true });
+    } catch {
+        return index;
+    }
+
+    for (const entry of entries) {
+        // SECURITY: a symlink can point out of the folder and nothing here resolves one
+        if (!entry.isFile()) continue;
+
+        const ext = path.extname(entry.name).slice(1).toLowerCase();
+        const rank = IMAGE_EXTENSIONS.indexOf(ext);
+        if (rank < 0) continue;
+
+        const base = entry.name.slice(0, -(ext.length + 1));
+        if (!SAFE_ITEM.test(base)) continue;
+        const item = base.toLowerCase();
+
+        // Two spellings of one item: better extension wins, then the first by code point
+        const known = index.get(item);
+        if (known && (known.rank < rank || (known.rank === rank && known.name < entry.name))) {
+            continue;
+        }
+
+        const file = path.join(IMAGE_PATH, entry.name);
+        if (!underImageRoot(file)) continue;
+        index.set(item, { rank, name: entry.name, file });
+    }
+
+    return index;
+}
+
+// Exported for the tests, which need the folder re-read before INDEX_MAX_AGE_MS is up
+function refreshImageIndex() {
+    imageIndex = buildImageIndex();
+    indexedAt = Date.now();
+    return imageIndex.size;
+}
+
+function currentImageIndex() {
+    if (Date.now() - indexedAt >= INDEX_MAX_AGE_MS) refreshImageIndex();
+    return imageIndex;
+}
+
+// Case-blind like the catalog lookup: ox keeps weapons upper-case (BACKEND.md §8)
 function imageFileFor(name) {
     if (!IMAGE_PATH || typeof name !== 'string' || !SAFE_ITEM.test(name)) return null;
-    for (const ext of ['png', 'webp', 'jpg']) {
-        const file = path.join(IMAGE_PATH, `${name}.${ext}`);
-        if (!underImageRoot(file)) return null;
-        if (fs.existsSync(file)) return file;
-    }
-    return null;
+    return currentImageIndex().get(name.toLowerCase())?.file ?? null;
 }
 
 function hasImage(name) {
@@ -415,4 +470,4 @@ async function handleMove(req, res) {
 }
 
 // Image path resolution exported for the tests
-module.exports = { router, imageFileFor };
+module.exports = { router, imageFileFor, refreshImageIndex };
