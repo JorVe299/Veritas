@@ -163,7 +163,7 @@ function underImageRoot(file) {
     return resolved === IMAGE_PATH || resolved.startsWith(IMAGE_PATH + path.sep);
 }
 
-// Lower index wins, so a .png is preferred over a .webp over a .jpg of the same item
+// Lower index wins for one item; the extension on disk is compared case-blind
 const IMAGE_EXTENSIONS = ['png', 'webp', 'jpg'];
 
 // Icons appear when a resource is updated: one folder listing a minute, not one per request
@@ -188,19 +188,23 @@ function buildImageIndex() {
         // SECURITY: a symlink can point out of the folder and nothing here resolves one
         if (!entry.isFile()) continue;
 
-        const ext = path.extname(entry.name).slice(1);
+        const ext = path.extname(entry.name).slice(1).toLowerCase();
         const rank = IMAGE_EXTENSIONS.indexOf(ext);
         if (rank < 0) continue;
 
-        const item = entry.name.slice(0, -(ext.length + 1));
-        if (!SAFE_ITEM.test(item)) continue;
+        const base = entry.name.slice(0, -(ext.length + 1));
+        if (!SAFE_ITEM.test(base)) continue;
+        const item = base.toLowerCase();
 
+        // Two spellings of one item: better extension wins, then the first by code point
         const known = index.get(item);
-        if (known && known.rank <= rank) continue;
+        if (known && (known.rank < rank || (known.rank === rank && known.name < entry.name))) {
+            continue;
+        }
 
         const file = path.join(IMAGE_PATH, entry.name);
         if (!underImageRoot(file)) continue;
-        index.set(item, { rank, file });
+        index.set(item, { rank, name: entry.name, file });
     }
 
     return index;
@@ -218,9 +222,10 @@ function currentImageIndex() {
     return imageIndex;
 }
 
+// Case-blind like the catalog lookup: ox keeps weapons upper-case (BACKEND.md §8)
 function imageFileFor(name) {
     if (!IMAGE_PATH || typeof name !== 'string' || !SAFE_ITEM.test(name)) return null;
-    return currentImageIndex().get(name)?.file ?? null;
+    return currentImageIndex().get(name.toLowerCase())?.file ?? null;
 }
 
 function hasImage(name) {

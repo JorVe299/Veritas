@@ -228,3 +228,41 @@ test('an image removed while the server runs stops being served after a refresh'
     assert.equal(await getImage(encodeURIComponent('bandage')), 404);
     assert.equal(await getImage(encodeURIComponent('water')), 200);
 });
+
+test('an item name finds its image whatever case either side is written in', async () => {
+    fs.writeFileSync(path.join(IMAGE_DIR, 'medkit.png'), 'png');
+    fs.writeFileSync(path.join(IMAGE_DIR, 'WEAPON_PISTOL.png'), 'png');
+    refreshImageIndex();
+
+    assert.equal(imageFileFor('MEDKIT'), path.join(IMAGE_DIR, 'medkit.png'));
+    assert.equal(imageFileFor('MedKit'), path.join(IMAGE_DIR, 'medkit.png'));
+    assert.equal(imageFileFor('weapon_pistol'), path.join(IMAGE_DIR, 'WEAPON_PISTOL.png'));
+    assert.equal(await getImage(encodeURIComponent('WEAPON_PISTOL')), 200);
+    assert.equal(await getImage(encodeURIComponent('medkit')), 200);
+});
+
+test('an upper-case extension is an item image too', () => {
+    fs.writeFileSync(path.join(IMAGE_DIR, 'tonic.PNG'), 'png');
+    refreshImageIndex();
+
+    assert.equal(imageFileFor('tonic'), path.join(IMAGE_DIR, 'tonic.PNG'));
+});
+
+test('one item spelled two ways resolves to the first file by code point', () => {
+    fs.writeFileSync(path.join(IMAGE_DIR, 'juice.png'), 'png');
+    fs.writeFileSync(path.join(IMAGE_DIR, 'JUICE.png'), 'png');
+    refreshImageIndex();
+
+    // One file where the filesystem folds case, two where it does not
+    const spellings = fs.readdirSync(IMAGE_DIR).filter(n => /^juice\.png$/i.test(n)).sort();
+    assert.equal(imageFileFor('juice'), path.join(IMAGE_DIR, spellings[0]));
+    assert.equal(imageFileFor('JUICE'), imageFileFor('juice'));
+});
+
+test('the better extension beats the file name when both spellings exist', () => {
+    fs.writeFileSync(path.join(IMAGE_DIR, 'BURGER.jpg'), 'jpg');
+    fs.writeFileSync(path.join(IMAGE_DIR, 'burger.png'), 'png');
+    refreshImageIndex();
+
+    assert.equal(imageFileFor('burger'), path.join(IMAGE_DIR, 'burger.png'));
+});
