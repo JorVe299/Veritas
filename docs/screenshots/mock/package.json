@@ -1,0 +1,12 @@
+{
+  "name": "veritas-screenshots",
+  "private": true,
+  "description": "Mock world and capture run for the README screenshots",
+  "scripts": {
+    "serve": "node boot.js",
+    "capture": "node capture.js"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.57.0"
+  }
+}
