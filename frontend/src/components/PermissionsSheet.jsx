@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Icon from './Icon';
 import StatusNote from './StatusNote';
 import CapabilityMatrix from './CapabilityMatrix';
 import RoleRoster from './RoleRoster';
 import { fetchPermissions, savePermissions } from '../api';
 import { useCan } from '../lib/useCan';
+import { motionReduced, SHEET_EXIT_MS } from '../lib/tabMotion';
 import { failureNote } from '../lib/writeFeedback';
 
 const INITIAL = {
@@ -53,8 +54,22 @@ export default function PermissionsSheet({ onClose, onSaved }) {
     const [edit, setEdit] = useState(null);
     const [saving, setSaving] = useState(false);
     const [feedback, setFeedback] = useState(null);
+    const [closing, setClosing] = useState(false);
     const closeRef = useRef(null);
     const alive = useRef(true);
+    const leaving = useRef(false);
+
+    // The exit plays before the unmount; a second request must not queue a second timer
+    const requestClose = useCallback(() => {
+        if (motionReduced()) {
+            onClose();
+            return;
+        }
+        if (leaving.current) return;
+        leaving.current = true;
+        setClosing(true);
+        window.setTimeout(onClose, SHEET_EXIT_MS);
+    }, [onClose]);
 
     // Blocks late reload() writes; set on mount too: StrictMode re-runs effects after a cleanup
     useEffect(() => {
@@ -87,11 +102,11 @@ export default function PermissionsSheet({ onClose, onSaved }) {
     }, []);
 
     useEffect(() => {
-        const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+        const onKey = (e) => { if (e.key === 'Escape') requestClose(); };
         window.addEventListener('keydown', onKey);
         closeRef.current?.focus();
         return () => window.removeEventListener('keydown', onKey);
-    }, [onClose]);
+    }, [requestClose]);
 
     const data = state.data;
     const roles = useMemo(() => (Array.isArray(data?.roles) ? data.roles : []), [data]);
@@ -217,12 +232,17 @@ export default function PermissionsSheet({ onClose, onSaved }) {
     };
 
     return (
-        <div className="sheet" role="dialog" aria-modal="true" aria-label="Roles and permissions">
+        <div
+            className={`sheet${closing ? ' sheet--closing' : ''}`}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Roles and permissions"
+        >
             <button
                 className="sheet__backdrop"
                 type="button"
                 aria-label="Close roles and permissions"
-                onClick={onClose}
+                onClick={requestClose}
             />
 
             <div className="sheet__panel">
@@ -236,7 +256,7 @@ export default function PermissionsSheet({ onClose, onSaved }) {
                         ref={closeRef}
                         type="button"
                         className="btn btn--ghost btn--sm"
-                        onClick={onClose}
+                        onClick={requestClose}
                     >
                         {dirty ? 'Discard and close' : 'Close'}
                     </button>

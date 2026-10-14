@@ -89,6 +89,7 @@ export default function Billboard({ player, bridgeDown, writeLog, onClear }) {
                         </span>
                         <Amount
                             value={player.money?.cash}
+                            flash
                             compactFrom={AMOUNT_COMPACT_FROM}
                             className="balance__value u-mono u-fit"
                         />
@@ -100,6 +101,7 @@ export default function Billboard({ player, bridgeDown, writeLog, onClear }) {
                         </span>
                         <Amount
                             value={player.money?.bank}
+                            flash
                             compactFrom={AMOUNT_COMPACT_FROM}
                             className="balance__value u-mono u-fit"
                         />

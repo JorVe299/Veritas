@@ -3423,9 +3423,139 @@
     }
 }
 
-/* The shared block zeroes durations but not delays: a stagger would still hold a blank */
-@media (prefers-reduced-motion: reduce) {
-    .rail__cell {
-        animation-delay: 0ms !important;
+/* === 13. Motion on action ============================================== */
+/* Only moments a person caused: every rule below is keyed on a user action, never on a
+   fetch. Durations: frequent moves 140-220ms, rare and large ones up to 350ms */
+
+/* --- Area switch ------------------------------------------------------- */
+/* Keyed on the area, so a selection or a write inside it replays nothing.
+   X only: the stage sits in a fixed grid row, and body clips sideways overflow */
+
+.stage {
+    animation: stage-in 0.2s var(--ease-out);
+}
+
+@keyframes stage-in {
+    from {
+        opacity: 0;
+        transform: translateX(calc(var(--area-dir, 0) * 12px));
     }
+}
+
+/* --- Citizen selection ------------------------------------------------- */
+/* Keyed on the citizen: the art settles out of the tile's hover scale into the hero */
+
+.billboard {
+    animation: board-in 0.26s var(--ease-out);
+}
+
+.billboard__art {
+    animation: board-art 0.34s var(--ease-out);
+}
+
+@keyframes board-in {
+    from { opacity: 0; }
+}
+
+@keyframes board-art {
+    from { transform: scale(1.06); }
+}
+
+/* backwards, not both: a held forwards fill would keep a stacking context for good */
+.billboard__inner,
+.billboard__intro {
+    animation: board-lift 0.28s var(--ease-out) 0.04s backwards;
+}
+
+@keyframes board-lift {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+}
+
+/* --- Section switch ---------------------------------------------------- */
+/* --panel-dir carries which way the tab sits, so the panel follows the underline */
+
+.modules {
+    animation: panel-in 0.18s var(--ease-out);
+}
+
+@keyframes panel-in {
+    from {
+        opacity: 0;
+        transform: translateX(calc(var(--panel-dir, 0) * 16px));
+    }
+}
+
+/* --- The sheet --------------------------------------------------------- */
+/* Rare and full-surface, so the longest move in the panel; the exit is shorter */
+
+.sheet__backdrop {
+    animation: sheet-veil 0.2s var(--ease-out);
+}
+
+.sheet__panel {
+    animation: sheet-rise 0.26s var(--ease-out);
+}
+
+@keyframes sheet-veil {
+    from { opacity: 0; }
+}
+
+@keyframes sheet-rise {
+    from {
+        opacity: 0;
+        transform: translateY(14px) scale(0.985);
+    }
+}
+
+/* Held by a component that delays its own unmount by SHEET_EXIT_MS.
+   Own keyframe names: reusing the entry's would update that animation past its own end */
+.sheet--closing .sheet__backdrop {
+    animation: sheet-unveil 0.16s var(--ease-out) forwards;
+}
+
+.sheet--closing .sheet__panel {
+    animation: sheet-sink 0.16s var(--ease-out) forwards;
+}
+
+@keyframes sheet-unveil {
+    to { opacity: 0; }
+}
+
+@keyframes sheet-sink {
+    to {
+        opacity: 0;
+        transform: translateY(14px) scale(0.985);
+    }
+}
+
+/* --- A value that just changed ----------------------------------------- */
+/* Remounted by Amount only when the figure really moved, so a refetch never flashes */
+
+[data-flash] {
+    animation: value-flash 0.6s var(--ease-out);
+}
+
+[data-flash='up'] {
+    --flash-tone: var(--c-live);
+    --flash-from: 5px;
+}
+
+[data-flash='down'] {
+    --flash-tone: var(--c-debit);
+    --flash-from: -5px;
+}
+
+@keyframes value-flash {
+    from {
+        color: var(--flash-tone);
+        transform: translateY(var(--flash-from));
+    }
+}
+
+/* The write log's newest entry; older rows keep their key and stay still */
+.ledger__row {
+    animation: line-in 0.22s var(--ease-out);
 }

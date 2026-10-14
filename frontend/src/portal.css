@@ -433,6 +433,11 @@
     isolation: isolate;
 }
 
+/* Settles out of the roster card's scale, the way the panel's billboard art does */
+.idhead__top .plate {
+    animation: idsettle 0.32s var(--ease-out);
+}
+
 /* Covers the whole card: the card is the control, the strip below only marks it */
 .idhead__toggle {
     position: absolute;
@@ -635,11 +640,12 @@
     grid-template-columns: minmax(0, 1fr);
 }
 
+/* Staggered behind the key art, capped: a long column must not hold a blank at the bottom */
 .idpanel {
     display: flex;
     flex-direction: column;
     min-width: 0;
-    animation: idrise 0.26s var(--ease-out) both;
+    animation: idrise 0.26s var(--ease-out) 0.05s backwards;
     background: var(--c-surface);
     border: 1px solid var(--c-border);
     border-radius: var(--r-panel);
@@ -1147,6 +1153,12 @@
     }
 }
 
+@keyframes idsettle {
+    from {
+        transform: scale(1.05);
+    }
+}
+
 /* --- The phone --------------------------------------------------------- */
 /* The surface most of this is read on: the desktop layout is the exception, not this */
 
@@ -1291,14 +1303,5 @@
 
     .idcard__go {
         display: none;
-    }
-}
-
-/* The shared block zeroes durations but not delays: a stagger would still hold a blank */
-@media (prefers-reduced-motion: reduce) {
-    .id *,
-    .idgate * {
-        animation-delay: 0ms !important;
-        transition-delay: 0ms !important;
     }
 }

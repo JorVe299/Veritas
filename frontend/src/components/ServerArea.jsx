@@ -12,6 +12,7 @@ import OrganisationsPanel from './OrganisationsPanel';
 export default function ServerArea({
     tabs,
     activeTab,
+    tabDir = 0,
     onTabChange,
     bansCitizenid = '',
     onClearBansCitizen,
@@ -32,6 +33,8 @@ export default function ServerArea({
             <div
                 /* Bans stacks: its wide rows become unscannable in a grid column */
                 className={`modules${activeTab === 'bans' ? ' modules--stack' : ''}`}
+                key={activeTab}
+                style={{ '--panel-dir': tabDir }}
                 role="tabpanel"
                 id={`tabpanel-${activeTab}`}
                 aria-labelledby={`tab-${activeTab}`}

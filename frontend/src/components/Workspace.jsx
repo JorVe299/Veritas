@@ -21,6 +21,7 @@ import StatusNote from './StatusNote';
 import TopBar from './TopBar';
 import { PlateSprite } from './Plate';
 import { useRoster } from '../lib/useRoster';
+import { tabDirection } from '../lib/tabMotion';
 import { buildPermissions, CanContext } from '../lib/useCan';
 import { formatTime } from '../utils/format';
 
@@ -63,6 +64,11 @@ export default function Workspace({
     // Plain state, no router: no deep links to keep
     const [area, setArea] = useState('citizens');
     const [serverTab, setServerTab] = useState('orgs');
+
+    // State, not derived per render: an unrelated re-render must not restate the direction
+    const [tabDir, setTabDir] = useState(0);
+    const [serverTabDir, setServerTabDir] = useState(0);
+    const [areaDir, setAreaDir] = useState(0);
 
     // Lifted here: set from the Enforcement tab, cleared from the server ban list
     const [bansCitizenid, setBansCitizenid] = useState('');
@@ -169,6 +175,11 @@ export default function Workspace({
     // Derived, not synced: losing a permission falls back to the first tab without an effect
     const activeTab = tabs.some((t) => t.id === tab) ? tab : tabs[0].id;
 
+    const selectTab = useCallback((next) => {
+        setTabDir(tabDirection(tabs, activeTab, next));
+        setTab(next);
+    }, [tabs, activeTab]);
+
     // Same mount rule as the cards; system.view also covers the framework probe
     const serverTabs = useMemo(() => {
         const list = [];
@@ -196,16 +207,25 @@ export default function Workspace({
         ? serverTab
         : serverTabs[0]?.id;
 
+    const selectServerTab = useCallback((next) => {
+        setServerTabDir(tabDirection(serverTabs, activeServerTab, next));
+        setServerTab(next);
+    }, [serverTabs, activeServerTab]);
+
+    // Home is left of the switch's own tabs, and only reachable from the wordmark
+    const areaOrder = useMemo(() => [{ id: 'home' }, ...areas], [areas]);
+
     // Back to the top: areas differ in height; a kept offset would land mid-card
     const handleAreaChange = useCallback((next) => {
+        setAreaDir(tabDirection(areaOrder, activeArea, next));
         setArea(next);
         stageRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-    }, []);
+    }, [areaOrder, activeArea]);
 
     const handleSelectFromHome = useCallback((player) => {
         handleSelect(player);
-        setArea('citizens');
-    }, [handleSelect]);
+        handleAreaChange('citizens');
+    }, [handleSelect, handleAreaChange]);
 
     // The account card links to the server-wide list instead of holding a copy
     const showAllAccounts = useCallback(() => {
@@ -313,7 +333,13 @@ export default function Workspace({
                     </div>
                 )}
 
-                <div className="stage" ref={stageRef}>
+                {/* Keyed on the area: the switch animation must not replay on a write */}
+                <div
+                    className="stage"
+                    key={activeArea}
+                    style={{ '--area-dir': areaDir }}
+                    ref={stageRef}
+                >
                     {/* One area mounted at a time: hidden areas issue no requests */}
                     {activeArea === 'home' ? (
                         <HomeArea
@@ -331,7 +357,8 @@ export default function Workspace({
                         <ServerArea
                             tabs={serverTabs}
                             activeTab={activeServerTab}
-                            onTabChange={setServerTab}
+                            tabDir={serverTabDir}
+                            onTabChange={selectServerTab}
                             bansCitizenid={bansCitizenid}
                             onClearBansCitizen={clearBansCitizen}
                         />
@@ -339,6 +366,8 @@ export default function Workspace({
                       <>
                         {canViewPlayers ? (
                             <Billboard
+                                /* Keyed on the citizen, not the record: a write replays nothing */
+                                key={selectedPlayer?.citizenid || 'idle'}
                                 player={selectedPlayer}
                                 bridgeDown={bridgeDown}
                                 writeLog={writeLog}
@@ -367,10 +396,12 @@ export default function Workspace({
                         {canViewPlayers && selectedPlayer && (
                             /* Gated on view, not edit: locked controls explain themselves */
                             <>
-                                <CitizenTabs tabs={tabs} activeId={activeTab} onSelect={setTab} />
+                                <CitizenTabs tabs={tabs} activeId={activeTab} onSelect={selectTab} />
 
                                 <div
                                     className="modules"
+                                    key={activeTab}
+                                    style={{ '--panel-dir': tabDir }}
                                     role="tabpanel"
                                     id={`tabpanel-${activeTab}`}
                                     aria-labelledby={`tab-${activeTab}`}
