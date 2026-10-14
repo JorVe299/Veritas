@@ -40,7 +40,7 @@ export default function PortalBar({
 
             {/* Role holders only: every admin route answers 403 to a portal-only player */}
             {canOpenPanel && (
-                <button type="button" className="btn btn--ghost btn--sm" onClick={onOpenPanel}>
+                <button type="button" className="btn btn--ghost btn--sm idbar__act" onClick={onOpenPanel}>
                     Admin panel
                 </button>
             )}
@@ -52,7 +52,7 @@ export default function PortalBar({
 
             <button
                 type="button"
-                className="btn btn--ghost btn--sm"
+                className="btn btn--ghost btn--sm idbar__act"
                 onClick={onSignOut}
                 disabled={signingOut}
             >

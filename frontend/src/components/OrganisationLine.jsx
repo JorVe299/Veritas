@@ -55,13 +55,22 @@ export default function OrganisationLine({
                 )}
             </div>
 
-            <div className="line__meta">
-                <span className="u-mono">{name}</span>
-                {organisation.topGrade
-                    ? <span>{`Top grade: ${organisation.topGrade}`}</span>
-                    : <span>No grades defined</span>}
-                {moneyVisible && account && <span>{authorizedText(account)}</span>}
-            </div>
+            <dl className="facts">
+                <dt className="facts__key u-caps">Name</dt>
+                <dd className="facts__value u-mono">{name}</dd>
+
+                <dt className="facts__key u-caps">Top grade</dt>
+                <dd className="facts__value">
+                    {organisation.topGrade || 'No grades defined'}
+                </dd>
+
+                {moneyVisible && account && (
+                    <>
+                        <dt className="facts__key u-caps">Authorized</dt>
+                        <dd className="facts__value">{authorizedText(account)}</dd>
+                    </>
+                )}
+            </dl>
 
             <div className="tally">
                 <div className="tally__item">
@@ -152,9 +161,9 @@ export default function OrganisationLine({
 
 function authorizedText(account) {
     const count = Number(account.authorizedCount);
-    if (!Number.isFinite(count)) return 'Authorized citizens unknown';
-    if (count === 0) return 'Nobody authorized';
-    return count === 1 ? '1 citizen authorized' : `${count} citizens authorized`;
+    if (!Number.isFinite(count)) return 'Not known';
+    if (count === 0) return 'Nobody';
+    return count === 1 ? '1 citizen' : `${count} citizens`;
 }
 
 // --- Members --------------------------------------------------------------
@@ -215,10 +224,16 @@ function MemberList({ res, groupsAvailable }) {
                                 <div className="line__top">
                                     <span className="line__name">{entry.name || entry.citizenid}</span>
                                 </div>
-                                <div className="line__meta">
-                                    <span className="u-mono">{entry.citizenid}</span>
-                                    {entry.jobLabel && <span>{entry.jobLabel}</span>}
-                                </div>
+                                <dl className="facts">
+                                    <dt className="facts__key u-caps">Citizen</dt>
+                                    <dd className="facts__value u-mono">{entry.citizenid}</dd>
+                                    {entry.jobLabel && (
+                                        <>
+                                            <dt className="facts__key u-caps">Job</dt>
+                                            <dd className="facts__value">{entry.jobLabel}</dd>
+                                        </>
+                                    )}
+                                </dl>
                             </li>
                         ))}
                     </ul>
@@ -250,11 +265,18 @@ function MemberList({ res, groupsAvailable }) {
                                         {entry.alsoActive ? 'Also working it' : 'Not working it'}
                                     </span>
                                 </div>
-                                <div className="line__meta">
-                                    <span className="u-mono">{entry.citizenid}</span>
-                                    <span>{`Grade ${entry.grade ?? 0}`}</span>
-                                    <span>{entry.type === 'gang' ? 'Gang membership' : 'Job membership'}</span>
-                                </div>
+                                <dl className="facts">
+                                    <dt className="facts__key u-caps">Citizen</dt>
+                                    <dd className="facts__value u-mono">{entry.citizenid}</dd>
+
+                                    <dt className="facts__key u-caps">Grade</dt>
+                                    <dd className="facts__value u-mono">{entry.grade ?? 0}</dd>
+
+                                    <dt className="facts__key u-caps">Held as</dt>
+                                    <dd className="facts__value">
+                                        {entry.type === 'gang' ? 'Gang membership' : 'Job membership'}
+                                    </dd>
+                                </dl>
                             </li>
                         ))}
                     </ul>

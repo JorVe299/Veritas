@@ -226,6 +226,19 @@
     color: var(--c-text-faint);
 }
 
+/* First paint only: the list is fetched once, so no later state restarts this */
+.idlist__items > li {
+    animation: idrise 0.26s var(--ease-out) both;
+}
+
+.idlist__items > li:nth-child(2) {
+    animation-delay: 60ms;
+}
+
+.idlist__items > li:nth-child(n + 3) {
+    animation-delay: 120ms;
+}
+
 .idlist__items {
     display: grid;
     /* min(): no column wider than the page at the 320px floor */
@@ -405,10 +418,13 @@
 
 /* Key art like the panel's billboard: the same long scrim and grain keep text legible */
 .idhead {
+    /* Height of the toggle strip; .idhead__inner reserves exactly this much below itself */
+    --idhead-bar: 2.75rem;
     overflow: hidden;
     border-radius: var(--r-panel);
     border: 1px solid var(--c-border);
     background: var(--c-surface);
+    animation: idrise 0.26s var(--ease-out) both;
 }
 
 /* The plate's own box: the drawer below must not sit on the picture */
@@ -417,20 +433,30 @@
     isolation: isolate;
 }
 
-/* Covers the whole card: the card is the control, the chevron only marks it */
+/* Covers the whole card: the card is the control, the strip below only marks it */
 .idhead__toggle {
     position: absolute;
     inset: 0;
-    display: flex;
-    align-items: flex-end;
-    justify-content: flex-end;
-    gap: var(--s-2);
-    padding: var(--s-5);
+    padding: 0;
     border: 0;
     background: none;
     color: var(--c-text-faint);
     cursor: pointer;
     transition: color 0.14s ease;
+}
+
+/* Own row at the foot of the card: nothing in the flow above can be printed on */
+.idhead__togglebar {
+    position: absolute;
+    inset: auto 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-3);
+    min-height: var(--idhead-bar);
+    padding: var(--s-2) var(--s-5);
+    border-top: 1px solid var(--c-border);
+    background: var(--c-surface);
 }
 
 .idhead__toggle:hover,
@@ -443,7 +469,7 @@
 }
 
 .idhead__chevron {
-    transition: transform 0.36s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 0.3s var(--ease-out);
 }
 
 .idhead.is-open .idhead__chevron {
@@ -456,20 +482,31 @@
     z-index: 1;
 }
 
-/* Grid track 0fr to 1fr: the same reveal as the poster tile, no max-height guess */
+/* Grid track 0fr to 1fr: the same reveal as the poster tile, no max-height guess
+   visibility, not display: the closed drawer keeps no box for a reader or a hit test */
 .idhead__drawer {
     display: grid;
     grid-template-rows: 0fr;
-    transition: grid-template-rows 0.36s cubic-bezier(0.16, 1, 0.3, 1);
+    visibility: hidden;
+    transition: grid-template-rows 0.3s var(--ease-out), visibility 0s linear 0.3s;
 }
 
 .idhead.is-open .idhead__drawer {
     grid-template-rows: 1fr;
+    visibility: visible;
+    transition: grid-template-rows 0.3s var(--ease-out), visibility 0s;
 }
 
 .idhead__drawerinner {
     min-height: 0;
     overflow: hidden;
+    opacity: 0;
+    transition: opacity 0.2s var(--ease-out);
+}
+
+.idhead.is-open .idhead__drawerinner {
+    opacity: 1;
+    transition: opacity 0.26s var(--ease-out) 0.08s;
 }
 
 .idhead__drawerinner > * {
@@ -528,13 +565,17 @@
     min-height: 11rem;
     justify-content: flex-end;
     padding: var(--s-5);
+    padding-bottom: calc(var(--s-5) + var(--idhead-bar));
 }
 
 .idback {
     display: inline-flex;
     align-items: center;
     gap: var(--s-2);
-    padding: var(--s-1) 0;
+    min-height: 2.75rem;
+    margin-top: calc(var(--s-2) * -1);
+    padding: var(--s-1) var(--s-2);
+    margin-left: calc(var(--s-2) * -1);
     border: 0;
     background: none;
     color: var(--c-text-muted);
@@ -598,6 +639,7 @@
     display: flex;
     flex-direction: column;
     min-width: 0;
+    animation: idrise 0.26s var(--ease-out) both;
     background: var(--c-surface);
     border: 1px solid var(--c-border);
     border-radius: var(--r-panel);
@@ -640,6 +682,18 @@
 
 .idpanel__body--gauges {
     gap: var(--s-4);
+}
+
+/* Implicit to-keyframe: the bar lands on the inline scaleX the component set */
+.idpanel__body--gauges .weigh__fill {
+    animation: idfill 0.32s var(--ease-out);
+}
+
+/* Tabular figures alone do not align across rows: the column holds the widest reading */
+.idpanel__body--gauges .weigh__value {
+    flex: none;
+    min-width: 2.5rem;
+    text-align: right;
 }
 
 /* Absence said in words, never an empty box: blank space reads as a failed load */
@@ -748,24 +802,66 @@
     color: var(--c-text-faint);
 }
 
-/* --- The inventory grid ------------------------------------------------ */
-/* Filled tiles skip .slot--filled: its grab cursor promises a move that cannot happen here */
+/* --- What a character carries ------------------------------------------ */
+/* Not the panel's square slots: without drag or drop a square only shrinks the name */
 
-.grid.idgrid {
-    grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+.iditems {
+    display: grid;
+    /* min(): no column wider than the page at the 320px floor */
+    grid-template-columns: repeat(auto-fill, minmax(min(13rem, 100%), 1fr));
+    gap: var(--s-2);
     margin: 0;
     padding: 0;
     list-style: none;
 }
 
-.slot--static {
-    background: var(--c-surface-3);
-    cursor: default;
+/* Wraps rather than shrinks: a name too long for the row takes the row, slot and count drop */
+.iditem {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--s-1) var(--s-3);
+    min-width: 0;
+    padding: var(--s-2) var(--s-3);
+    background: var(--c-surface-2);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-tile);
 }
 
-/* Loading placeholder; not .slot, whose background would win over the shimmer */
+/* The loudest thing in the tile: an item is known by its name, not by its slot */
+.iditem__name {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-weight: 600;
+    line-height: var(--lh-snug);
+    overflow-wrap: anywhere;
+}
+
+.iditem__meta {
+    display: flex;
+    align-items: baseline;
+    gap: var(--s-3);
+    flex: none;
+    font-size: var(--fs-sm);
+    color: var(--c-text-faint);
+}
+
+.iditem__slot {
+    color: var(--c-text-faint);
+}
+
+.iditem__count {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 1px;
+    flex: none;
+    font-weight: 700;
+    color: var(--c-text);
+}
+
+/* Loading placeholder, sized like a filled tile so the panel does not jump */
 .idtile {
-    aspect-ratio: 1;
+    height: 4.25rem;
     border-radius: var(--r-tile);
 }
 
@@ -1035,26 +1131,174 @@
     max-width: 68ch;
 }
 
+/* --- Motion ------------------------------------------------------------ */
+/* Entrances only, on data that is fetched once; nothing here runs twice on a screen */
+
+@keyframes idrise {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+}
+
+@keyframes idfill {
+    from {
+        transform: scaleX(0);
+    }
+}
+
+/* --- The phone --------------------------------------------------------- */
+/* The surface most of this is read on: the desktop layout is the exception, not this */
+
 @media (max-width: 560px) {
-    /* The picture stands in for the name; the bar wraps so sign-out is never clipped off */
+    /* Two deliberate rows: the wordmark above, who is signed in and the ways out below */
+    .idbar {
+        align-items: center;
+        row-gap: var(--s-2);
+        padding-block: var(--s-3);
+    }
+
+    .idbar__brand {
+        order: 1;
+        min-height: 2.75rem;
+    }
+
+    .idbar__tag {
+        order: 2;
+    }
+
+    /* Zero-height flex line break: the row below starts with who is signed in */
+    .idbar__spacer {
+        order: 3;
+        flex: 0 0 100%;
+        height: 0;
+    }
+
+    .idbar__who {
+        order: 4;
+        margin-right: auto;
+    }
+
+    .idbar__act {
+        order: 5;
+        min-height: 2.75rem;
+    }
+
+    /* The picture stands in for the name: the row holds both ways out instead */
     .idbar__name {
         display: none;
     }
 
-    /* Would hold an empty row open once the bar wraps */
-    .idbar__spacer {
-        display: none;
-    }
-
-    .idbar__who {
-        margin-left: auto;
+    /* A phone screen is short: less air between the blocks, none of it wasted */
+    .idmain {
+        gap: var(--s-5);
+        padding: var(--s-5) var(--gutter) var(--s-6);
     }
 
     .idhero {
         align-items: flex-start;
+        gap: var(--s-3);
     }
 
+    .idhero__facts {
+        gap: var(--s-1) var(--s-3);
+    }
+
+    .idhead__inner {
+        min-height: 9rem;
+        padding: var(--s-4);
+        padding-bottom: calc(var(--s-4) + var(--idhead-bar));
+    }
+
+    .idhead__togglebar {
+        padding-inline: var(--s-4);
+    }
+
+    .idhead__drawerinner > .idbans__quiet {
+        padding: var(--s-4);
+    }
+
+    /* The poster is a thumbnail here: the text column keeps the rest of the width */
+    .idcard {
+        gap: var(--s-3);
+        padding: var(--s-3);
+    }
+
+    .idcard__plate {
+        width: 4.25rem;
+    }
+
+    /* Id over last seen, the chevron beside both: wrapping leaves it alone on a line */
+    .idcard__foot {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: var(--s-1) var(--s-3);
+    }
+
+    .idcard__cid,
     .idcard__seen {
+        grid-column: 1;
         margin-left: 0;
+    }
+
+    .idcard__go {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        align-self: center;
+    }
+
+    /* The pill owns a line: beside the plate row it leaves neither enough room */
+    .idrow {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--s-2);
+    }
+
+    /* One column: two would break item keys like WEAPON_FLASHLIGHT across lines */
+    .iditems {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .idalert {
+        gap: var(--s-3);
+        padding: var(--s-4);
+    }
+
+    /* Thumb-sized, as every control on this page must be */
+    .idfail .btn,
+    .idbans__retry {
+        min-height: 2.75rem;
+    }
+
+    .idgate {
+        padding: var(--s-5) var(--gutter) var(--s-6);
+    }
+
+    .idgate__card {
+        padding: var(--s-5);
+    }
+
+    .idgate__action {
+        align-self: stretch;
+    }
+}
+
+/* The narrowest phones still in use: the date is worth more than the chevron's cue */
+@media (max-width: 400px) {
+    .idcard__foot {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .idcard__go {
+        display: none;
+    }
+}
+
+/* The shared block zeroes durations but not delays: a stagger would still hold a blank */
+@media (prefers-reduced-motion: reduce) {
+    .id *,
+    .idgate * {
+        animation-delay: 0ms !important;
+        transition-delay: 0ms !important;
     }
 }

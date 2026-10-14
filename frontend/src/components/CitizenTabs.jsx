@@ -1,9 +1,39 @@
-import { useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import Icon from './Icon';
 
 /** Section tab bar with arrow-key navigation; shared by the citizen and server areas */
 export default function CitizenTabs({ tabs, activeId, onSelect, label = 'Citizen sections' }) {
     const listRef = useRef(null);
+
+    // The underline is one element behind the strip, so it can travel between tabs
+    const place = useCallback(() => {
+        const list = listRef.current;
+        const active = list?.querySelector('[aria-selected="true"]');
+        if (!list || !active) return;
+        list.style.setProperty('--tab-x', `${active.offsetLeft}px`);
+        list.style.setProperty('--tab-w', `${active.offsetWidth}px`);
+    }, []);
+
+    useLayoutEffect(() => {
+        place();
+        const list = listRef.current;
+        const active = list?.querySelector('[aria-selected="true"]');
+        if (!list || !active) return;
+        // Horizontal only: scrollIntoView would drag the whole page past the billboard
+        const hidden = active.offsetLeft < list.scrollLeft
+            || active.offsetLeft + active.offsetWidth > list.scrollLeft + list.clientWidth;
+        if (hidden) {
+            list.scrollLeft = active.offsetLeft - (list.clientWidth - active.offsetWidth) / 2;
+        }
+    }, [place, activeId, tabs]);
+
+    useEffect(() => {
+        const list = listRef.current;
+        if (!list || typeof ResizeObserver !== 'function') return undefined;
+        const observer = new ResizeObserver(place);
+        observer.observe(list);
+        return () => observer.disconnect();
+    }, [place]);
 
     const handleKeyDown = (event) => {
         const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;

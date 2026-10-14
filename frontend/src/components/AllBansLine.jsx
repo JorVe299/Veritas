@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { deleteBanHistory, liftBan } from '../api';
 import { DASH } from '../lib/portalText';
 import { failureNote, successNote } from '../lib/writeFeedback';
@@ -29,12 +29,14 @@ export default function AllBansLine({ entry, canEdit, canDeleteHistory = false, 
 
     // Reading order under the reason; missing parts are dropped, never shown as a dash
     const facts = [
-        name ? { key: 'who', text: `Against ${name}` } : null,
+        name ? { key: 'who', label: 'Against', text: name } : null,
         holderFact(entry, characters),
-        issuedBy ? { key: 'by', text: `By ${issuedBy}` } : null,
-        { key: 'issued', text: issuedLine(entry, fromDatabase) },
-        state.term ? { key: 'term', text: state.term } : null,
-        fromHistory && text(entry?.revokedBy) ? { key: 'liftedby', text: `Lifted by ${text(entry.revokedBy)}` } : null,
+        issuedBy ? { key: 'by', label: 'Issued by', text: issuedBy } : null,
+        { key: 'issued', label: 'Issued', text: issuedLine(entry, fromDatabase) },
+        state.term ? { key: 'term', label: 'Term', text: state.term } : null,
+        fromHistory && text(entry?.revokedBy)
+            ? { key: 'liftedby', label: 'Lifted by', text: text(entry.revokedBy) }
+            : null,
         reference
             ? { key: 'ref', label: 'Ref', text: reference, mono: true }
             : null,
@@ -83,14 +85,14 @@ export default function AllBansLine({ entry, canEdit, canDeleteHistory = false, 
                 </span>
             </div>
 
-            <div className="line__meta">
+            <dl className="facts">
                 {facts.map((fact) => (
-                    <span key={fact.key}>
-                        {fact.label ? `${fact.label} ` : null}
-                        <span className={fact.mono ? 'u-mono' : undefined}>{fact.text}</span>
-                    </span>
+                    <Fragment key={fact.key}>
+                        <dt className="facts__key u-caps">{fact.label}</dt>
+                        <dd className={`facts__value${fact.mono ? ' u-mono' : ''}`}>{fact.text}</dd>
+                    </Fragment>
                 ))}
-            </div>
+            </dl>
 
             {/* Folded: hex identifiers on every row are noise; the summary counts them */}
             {(identifierCount > 0 || characters.length > 1) && (
@@ -219,9 +221,9 @@ function when(value) {
 // and a date derived from the row id would be invented
 function issuedLine(entry, fromDatabase) {
     const issued = entry?.issuedAtKnown === true ? when(entry?.issuedAt) : null;
-    if (issued) return `Issued ${issued}`;
-    if (fromDatabase) return 'The bans table records no issue date';
-    return 'Issue date not recorded';
+    if (issued) return issued;
+    if (fromDatabase) return 'Not recorded in the bans table';
+    return 'Not recorded';
 }
 
 // Server sends a citizenid only for exactly one character; never pick one out of several
@@ -229,9 +231,13 @@ function holderFact(entry, characters) {
     const citizenid = text(entry?.citizenid);
     if (citizenid) return { key: 'holder', label: 'Citizen', text: citizenid, mono: true };
     if (characters.length > 1) {
-        return { key: 'holder', text: `${characters.length} characters on this account` };
+        return { key: 'holder', label: 'Account', text: `${characters.length} characters` };
     }
-    return { key: 'holder', text: 'No character in this database carries these identifiers' };
+    return {
+        key: 'holder',
+        label: 'Account',
+        text: 'No character in this database carries these identifiers',
+    };
 }
 
 function revealSummary(characters, identifierCount, identifiers) {

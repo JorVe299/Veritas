@@ -27,7 +27,7 @@ export default function PortalInventory({ citizenid }) {
 
             <div className="idpanel__body">
                 {state.status === 'loading' && (
-                    <div className="grid" role="status" aria-label="Loading the inventory">
+                    <div className="iditems" role="status" aria-label="Loading the inventory">
                         {[0, 1, 2, 3, 4].map((n) => (
                             <span key={n} className="skeleton idtile" />
                         ))}
@@ -48,32 +48,31 @@ export default function PortalInventory({ citizenid }) {
                 )}
 
                 {state.status === 'ready' && ordered.length > 0 && (
-                    <ul className="grid idgrid">
+                    <ul className="iditems">
                         {ordered.map((item, index) => (
                             <li
                                 /* A broken row could repeat a slot number */
                                 key={`${item?.slot ?? 'x'}-${index}`}
-                                className="slot slot--static"
+                                className="iditem"
                             >
-                                <span className="slot__num">{item?.slot ?? '—'}</span>
-                                {/* Same threshold as the panel's slots */}
-                                <Amount
-                                    value={item?.amount ?? '?'}
-                                    currency={false}
-                                    compactFrom={10000}
-                                    className="slot__count u-mono"
-                                />
-                                <span className="slot__art">
-                                    {/* No item image from the API: the panel's fallback */}
-                                    <span className="slot__fallback">
-                                        {String(item?.name ?? '?').slice(0, 3)}
-                                    </span>
-                                </span>
-                                <span
-                                    className="slot__label"
-                                    title={item?.name ? `${item?.amount ?? '?'}× ${item.name}` : undefined}
-                                >
+                                {/* The name leads: a reader looks for what is carried */}
+                                <span className="iditem__name" title={item?.name || undefined}>
                                     {item?.name ?? 'Unnamed item'}
+                                </span>
+                                <span className="iditem__meta">
+                                    <span className="iditem__slot u-caps">
+                                        Slot <span className="u-mono">{item?.slot ?? '—'}</span>
+                                    </span>
+                                    <span className="iditem__count">
+                                        <span aria-hidden="true">×</span>
+                                        {/* Same threshold as the panel's slots */}
+                                        <Amount
+                                            value={item?.amount ?? '?'}
+                                            currency={false}
+                                            compactFrom={10000}
+                                            className="u-mono"
+                                        />
+                                    </span>
                                 </span>
                             </li>
                         ))}

@@ -180,8 +180,13 @@ export function Rail({ rail, bridgeDown, selectedId, onSelect }) {
             </header>
 
             <ul className="rail__track" ref={trackRef} onScroll={measure}>
-                {rail.players.map((player) => (
-                    <li className="rail__cell" key={player.citizenid}>
+                {rail.players.map((player, index) => (
+                    /* --i staggers the entry only; capped so a long rail does not hold a blank */
+                    <li
+                        className="rail__cell"
+                        key={player.citizenid}
+                        style={{ '--i': Math.min(index, 7) }}
+                    >
                         <Tile
                             player={player}
                             statusUnknown={bridgeDown}

@@ -100,8 +100,11 @@ export default function PortalCharacter({ citizenid, summary = null, bans, onBac
                         aria-controls={drawerId}
                         onClick={() => setBansOpen((open) => !open)}
                     >
-                        <span className="idhead__togglelabel u-caps">Ban record</span>
-                        <Icon name="chevronDown" size={20} className="idhead__chevron" />
+                        {/* Reserved strip: the label can never land on the name or the meta */}
+                        <span className="idhead__togglebar">
+                            <span className="idhead__togglelabel u-caps">Ban record</span>
+                            <Icon name="chevronDown" size={20} className="idhead__chevron" />
+                        </span>
                     </button>
                 </div>
 

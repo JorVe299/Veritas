@@ -117,14 +117,29 @@ export default function AccountLine({ account, canEdit = false, onChanged, onRep
                 <span className="line__amount u-mono">{formatMoney(balance)}</span>
             </div>
 
-            <div className="line__meta">
-                <span className="u-mono">{account.id}</span>
-                {account.creator && <span>Opened by {account.creator}</span>}
-                <span>
-                    {authorizedText(account)}
-                </span>
-                {business && <span>A whole business draws on this account.</span>}
-            </div>
+            <dl className="facts">
+                {/* A personal account is named by its citizen id: twice says nothing */}
+                {account.id !== label && (
+                    <>
+                        <dt className="facts__key u-caps">Account</dt>
+                        <dd className="facts__value u-mono">{account.id}</dd>
+                    </>
+                )}
+
+                {account.creator && (
+                    <>
+                        <dt className="facts__key u-caps">Opened by</dt>
+                        <dd className="facts__value">{account.creator}</dd>
+                    </>
+                )}
+
+                <dt className="facts__key u-caps">Authorized</dt>
+                <dd className="facts__value">{authorizedText(account)}</dd>
+            </dl>
+
+            {business && (
+                <p className="line__note">A whole business draws on this account.</p>
+            )}
 
             {editing && (
                 <>
@@ -262,8 +277,8 @@ function authorizedText(account) {
         ? Number(account.authorizedCount)
         : (Array.isArray(account.authorized) ? account.authorized.length : 0);
 
-    if (count === 0) return 'Nobody else is authorized';
-    return count === 1 ? '1 citizen authorized' : `${count} citizens authorized`;
+    if (count === 0) return 'Nobody else';
+    return count === 1 ? '1 citizen' : `${count} citizens`;
 }
 
 function previewClass(valid, delta) {

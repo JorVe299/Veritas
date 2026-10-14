@@ -1,3 +1,4 @@
+import useCompact from '../lib/useCompact';
 import Icon from './Icon';
 import Mark from './Mark';
 import SessionMenu from './SessionMenu';
@@ -5,6 +6,7 @@ import SessionMenu from './SessionMenu';
 /**
  * Home is the wordmark, not an area button: home is not a work area
  * Permissions sits here, not in SessionMenu: it must stay reachable without a login
+ * Narrow: brand, link state and the account menu share one row, so the bar stays one block
  */
 export default function TopBar({
     search,
@@ -29,22 +31,57 @@ export default function TopBar({
     const bridgeDown = Boolean(bridge && !bridge.reachable);
     const unknown = !bridge || bridgeDown;
 
+    const compact = useCompact();
     const switchable = areas.length > 1;
     const showSearch = searchable && activeArea === 'citizens';
+    // Without a session menu to hold them the two buttons must stay in the bar itself
+    const folded = compact && showSession;
 
     return (
         <header className="topbar">
-            {/* Stays enabled at home: a no-op beats a control vanishing under the cursor */}
-            <button
-                type="button"
-                className={`topbar__brand${atHome ? ' is-here' : ''}`}
-                onClick={onGoHome}
-                aria-current={atHome ? 'page' : undefined}
-            >
-                <Mark size={26} />
-                <span className="topbar__word">Veritas</span>
-                <span className="u-sr">— go to the start page</span>
-            </button>
+            <div className="topbar__head">
+                {/* Stays enabled at home: a no-op beats a control vanishing under the cursor */}
+                <button
+                    type="button"
+                    className={`topbar__brand${atHome ? ' is-here' : ''}`}
+                    onClick={onGoHome}
+                    aria-current={atHome ? 'page' : undefined}
+                >
+                    <Mark size={26} />
+                    <span className="topbar__word">Veritas</span>
+                    <span className="u-sr">— go to the start page</span>
+                </button>
+
+                <div
+                    className={`bridge${bridgeDown ? ' bridge--down' : unknown ? ' bridge--idle' : ' bridge--up'}`}
+                    title={bridge?.error || undefined}
+                >
+                    <span className="bridge__dot" aria-hidden="true" />
+                    <span className="bridge__text">
+                        {status === 'loading' && !bridge
+                            ? 'Checking link'
+                            : bridgeDown
+                                ? 'Link down · status unverified'
+                                : bridge
+                                    ? `Link up · ${bridge.onlineCount ?? 0} on server`
+                                    /* No players.view: the bridge is never read; claim nothing */
+                                    : 'Link status unknown'}
+                    </span>
+                </div>
+
+                {showSession && (
+                    <SessionMenu
+                        user={user}
+                        roleLabel={roleLabel}
+                        signingOut={signingOut}
+                        onSignOut={onSignOut}
+                        compact={compact}
+                        showPermissions={showPermissions}
+                        onOpenPermissions={onOpenPermissions}
+                        onOpenPortal={onOpenPortal}
+                    />
+                )}
+            </div>
 
             {switchable && (
                 <div className="segment topbar__areas" role="group" aria-label="Main area">
@@ -85,25 +122,8 @@ export default function TopBar({
             {/* Keeps bridge and session right-aligned while the search is hidden */}
             {!showSearch && <div className="topbar__spacer" aria-hidden="true" />}
 
-            <div
-                className={`bridge${bridgeDown ? ' bridge--down' : unknown ? ' bridge--idle' : ' bridge--up'}`}
-                title={bridge?.error || undefined}
-            >
-                <span className="bridge__dot" aria-hidden="true" />
-                <span className="bridge__text">
-                    {status === 'loading' && !bridge
-                        ? 'Checking link'
-                        : bridgeDown
-                            ? 'Link down · status unverified'
-                            : bridge
-                                ? `Link up · ${bridge.onlineCount ?? 0} on server`
-                                /* No players.view: the bridge is never read; claim nothing */
-                                : 'Link status unknown'}
-                </span>
-            </div>
-
             {/* Kept quiet: it leads out of the panel; portal access is not a panel role */}
-            {onOpenPortal && (
+            {onOpenPortal && !folded && (
                 <button
                     type="button"
                     className="btn btn--ghost btn--sm topbar__portal"
@@ -114,7 +134,7 @@ export default function TopBar({
                 </button>
             )}
 
-            {showPermissions && (
+            {showPermissions && !folded && (
                 <button
                     type="button"
                     className="btn btn--ghost btn--sm topbar__perms"
@@ -123,15 +143,6 @@ export default function TopBar({
                     <Icon name="users" size={15} />
                     Permissions
                 </button>
-            )}
-
-            {showSession && (
-                <SessionMenu
-                    user={user}
-                    roleLabel={roleLabel}
-                    signingOut={signingOut}
-                    onSignOut={onSignOut}
-                />
             )}
         </header>
     );

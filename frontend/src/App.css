@@ -33,7 +33,13 @@
     z-index: 20;
 }
 
+/* Source order groups the narrow row; order restores the wide bar's reading order */
+.topbar__head {
+    display: contents;
+}
+
 .topbar__brand {
+    order: 1;
     display: flex;
     align-items: center;
     gap: var(--s-3);
@@ -79,10 +85,23 @@
 }
 
 .topbar__search {
+    order: 3;
     position: relative;
     flex: 1 1 26rem;
     max-width: 34rem;
     margin-inline: auto;
+}
+
+.topbar .bridge {
+    order: 5;
+}
+
+.topbar__portal {
+    order: 6;
+}
+
+.topbar .session {
+    order: 8;
 }
 
 .topbar__searchicon {
@@ -249,15 +268,19 @@
     text-shadow: 0 1px 10px rgba(0, 0, 0, 0.6);
 }
 
-.billboard__meta {
+.billboard__tags {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--s-2) var(--s-5);
+    gap: var(--s-2);
     margin-top: var(--s-4);
-    color: var(--c-text-muted);
-    font-size: var(--fs-sm);
-    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7);
+}
+
+.billboard__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+    margin: var(--s-2) 0 0;
 }
 
 .billboard__cid {
@@ -271,9 +294,30 @@
     font-size: var(--fs-sm);
 }
 
-/* No nowrap: the row wraps whole facts; only a fact wider than the line breaks, not clips */
+/* Own ground, not a text shadow: faint type on the key art is the panel's worst contrast */
 .billboard__fact {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--s-1) var(--s-2);
     min-width: 0;
+    padding: var(--s-2) var(--s-3);
+    background: rgba(13, 12, 11, 0.66);
+    border: 1px solid var(--c-border-strong);
+    border-radius: var(--r-control);
+    backdrop-filter: blur(8px);
+}
+
+.billboard__factkey {
+    flex: none;
+    color: var(--c-text-faint);
+}
+
+.billboard__factvalue {
+    min-width: 0;
+    margin: 0;
+    color: var(--c-text);
+    font-size: var(--fs-sm);
     overflow-wrap: anywhere;
 }
 
@@ -658,21 +702,36 @@
 /* --- Section bar ------------------------------------------------------- */
 /* Sticky: the sections stay reachable below long cards (vehicles, bans) */
 
+/* The gap below the rule belongs to the sticky box: a margin would let rows scroll through it */
 .tabs {
     position: sticky;
     top: 0;
     z-index: 10;
     background: var(--c-bg);
-    border-bottom: 1px solid var(--c-border);
-    margin-bottom: var(--s-5);
+    padding-bottom: var(--s-5);
 }
 
 .tabs__list {
+    position: relative;
     display: flex;
     gap: var(--s-1);
     padding: 0 var(--gutter);
+    border-bottom: 1px solid var(--c-border);
     overflow-x: auto;
     scrollbar-width: none;
+}
+
+/* One travelling underline instead of a border per tab: the move shows where the eye went */
+.tabs__list::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: var(--tab-w, 0);
+    height: 2px;
+    background: var(--c-focus);
+    transform: translateX(var(--tab-x, 0));
+    transition: transform 0.22s var(--ease-out), width 0.22s var(--ease-out);
 }
 
 .tabs__list::-webkit-scrollbar {
@@ -684,9 +743,9 @@
     align-items: center;
     gap: var(--s-2);
     flex: none;
-    padding: var(--s-3) var(--s-3) calc(var(--s-3) - 2px);
+    min-height: 2.75rem;
+    padding: var(--s-3);
     border: 0;
-    border-bottom: 2px solid transparent;
     background: none;
     color: var(--c-text-faint);
     font-size: var(--fs-micro);
@@ -696,7 +755,7 @@
     font-variation-settings: 'wdth' 105;
     white-space: nowrap;
     cursor: pointer;
-    transition: color 0.14s ease, border-color 0.14s ease;
+    transition: color 0.14s ease;
 }
 
 .tab:hover {
@@ -709,7 +768,6 @@
 
 .tab.is-active {
     color: var(--c-text);
-    border-bottom-color: var(--c-focus);
 }
 
 .tab.is-active .tab__icon {
@@ -724,29 +782,23 @@
     animation: pulse 2.6s ease-in-out infinite;
 }
 
+/* Every tab keeps its word: an icon-only strip is unreadable and unnameable */
 @media (max-width: 560px) {
+    .tabs {
+        padding-bottom: var(--s-4);
+    }
+
     .tabs__list {
         gap: 0;
     }
 
     .tab {
         padding-inline: var(--s-2);
+        letter-spacing: 0.08em;
     }
 
-    /* Labels visually hidden except on the active tab: the bar must fit one line */
-    .tab:not(.is-active) .tab__label {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        padding: 0;
-        margin: -1px;
-        overflow: hidden;
-        clip-path: inset(50%);
-        white-space: nowrap;
-    }
-
-    .tab:not(.is-active) {
-        padding-inline: var(--s-3);
+    .tab__icon {
+        display: none;
     }
 }
 
@@ -1049,6 +1101,12 @@
     background: var(--c-surface-2);
     border: 1px solid var(--c-border-strong);
     border-radius: var(--r-control);
+    /* Runs on mount only: a refetch keeps the keys, so a poll replays nothing */
+    animation: line-in 0.22s var(--ease-out) both;
+}
+
+@keyframes line-in {
+    from { opacity: 0; transform: translateY(4px); }
 }
 
 .line__top {
@@ -1105,6 +1163,36 @@
 
 .line__meta > * {
     min-width: 0;
+}
+
+/* --- Labelled facts in a row ------------------------------------------- */
+/* Two columns, never a spaced row: a bare gap between facts reads as a column boundary */
+
+.facts {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: var(--s-1) var(--s-3);
+    margin: 0;
+    font-size: var(--fs-sm);
+}
+
+.facts__key {
+    color: var(--c-text-faint);
+    line-height: 1.7;
+}
+
+.facts__value {
+    min-width: 0;
+    margin: 0;
+    color: var(--c-text-muted);
+    /* Ids, references, dates: copied by staff, so they break rather than being cut */
+    overflow-wrap: anywhere;
+}
+
+/* A sentence about the row, not a reading: stands outside the key/value columns */
+.line__note {
+    font-size: var(--fs-sm);
+    color: var(--c-text-faint);
 }
 
 .line__edit {
@@ -1245,6 +1333,8 @@
     scroll-snap-type: x proximity;
     scroll-padding-inline: var(--gutter);
     scrollbar-width: none;
+    /* A swipe that runs off the rail must not take the page with it */
+    overscroll-behavior-x: contain;
 }
 
 .rail__track::-webkit-scrollbar {
@@ -1255,6 +1345,12 @@
     flex: none;
     width: var(--tile-w);
     scroll-snap-align: start;
+    animation: rail-in 0.3s var(--ease-out) both;
+    animation-delay: calc(var(--i, 0) * 35ms);
+}
+
+@keyframes rail-in {
+    from { opacity: 0; transform: translateY(8px); }
 }
 
 .rail__cell:hover,
@@ -1727,6 +1823,87 @@
     color: var(--c-text-faint);
 }
 
+/* Narrow bar: one 44px affordance carries name, role, portal, permissions and sign-out */
+.session--menu {
+    position: relative;
+}
+
+.session__toggle {
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    border: 0;
+    border-radius: var(--r-pill);
+    background: none;
+    color: var(--c-text);
+    cursor: pointer;
+    transition: background 0.14s ease;
+}
+
+.session__toggle:hover,
+.session__toggle[aria-expanded="true"] {
+    background: var(--c-surface-2);
+}
+
+.session__pop {
+    position: absolute;
+    top: calc(100% + var(--s-2));
+    right: 0;
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    width: max-content;
+    min-width: 12rem;
+    /* right: 0 would otherwise shrink the menu to the toggle's own 44px */
+    max-width: min(17rem, calc(100vw - var(--gutter) * 2));
+    padding: var(--s-2);
+    background: var(--c-surface);
+    border: 1px solid var(--c-border-strong);
+    border-radius: var(--r-panel);
+    box-shadow: var(--sh-rail);
+    animation: session-pop 0.18s var(--ease-out) both;
+}
+
+@keyframes session-pop {
+    from { opacity: 0; transform: translateY(-0.375rem); }
+}
+
+.session__card {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--s-2) var(--s-3) var(--s-3);
+    border-bottom: 1px solid var(--c-border);
+    margin-bottom: var(--s-2);
+}
+
+.session__item {
+    display: flex;
+    align-items: center;
+    min-height: 2.75rem;
+    padding: 0 var(--s-3);
+    border: 0;
+    border-radius: var(--r-control);
+    background: none;
+    color: var(--c-text);
+    font-size: var(--fs-base);
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.14s ease;
+}
+
+.session__item:hover:not(:disabled) {
+    background: var(--c-surface-2);
+}
+
+.session__item:disabled {
+    color: var(--c-text-faint);
+    cursor: not-allowed;
+}
+
 /* --- Warning bar: the panel runs unprotected --------------------------- */
 /* Outside the scrolling area and not dismissible: it must never scroll out of sight */
 
@@ -1751,30 +1928,43 @@
         --tile-w: 8.75rem;
     }
 
+    /* Three full-width rows, each ending at the same edges: brand row, areas, search */
     .topbar {
         flex-wrap: wrap;
+        gap: var(--s-2) var(--s-3);
+        padding-block: var(--s-2);
+    }
+
+    .topbar__head {
+        display: flex;
+        align-items: center;
         gap: var(--s-3);
-        padding-block: var(--s-3);
+        flex: 1 1 100%;
+        min-width: 0;
+    }
+
+    .topbar__brand {
+        margin-right: auto;
     }
 
     .topbar__search {
-        order: 3;
         flex-basis: 100%;
         max-width: none;
         margin: 0;
     }
 
-    .bridge {
-        margin-left: auto;
+    .topbar__spacer {
+        display: none;
     }
 
-    .bridge__text {
+    .topbar .bridge {
+        min-width: 0;
+    }
+
+    /* Wrapping beats overflow: the longest state must never run under the account menu */
+    .topbar .bridge__text {
         font-size: var(--fs-micro);
-    }
-
-    /* Shared first row: the name gives way first; picture and sign-out stay */
-    .session__who {
-        max-width: 7rem;
+        white-space: normal;
     }
 
     .billboard {
@@ -1812,9 +2002,32 @@
         max-width: none;
     }
 
-    /* No room for bridge, name and sign-out: the picture stays as the identifier */
-    .session__who {
-        display: none;
+    /* No room beside the link state: the mark carries the brand, the name stays in the tree */
+    .topbar__word {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    .topbar__brand {
+        min-width: 2.75rem;
+        min-height: 2.75rem;
+        justify-content: center;
+    }
+
+    .topbar__areas {
+        flex: 1 1 100%;
+    }
+
+    .topbar__areas .segment__btn {
+        height: 2.75rem;
+    }
+
+    .topbar__input {
+        height: 2.75rem;
     }
 
     .gate__card {
@@ -2725,6 +2938,7 @@
 /* --- Role and access in the top bar ------------------------------------ */
 
 .topbar__perms {
+    order: 7;
     flex: none;
 }
 
@@ -2772,6 +2986,7 @@
 /* The modules' segmented control: no second switch language */
 
 .topbar__areas {
+    order: 2;
     flex: none;
 }
 
@@ -2781,6 +2996,7 @@
 
 /* Holds the search's width: the bar does not rearrange on every switch */
 .topbar__spacer {
+    order: 4;
     flex: 1 1 auto;
     min-width: 0;
 }
@@ -3071,5 +3287,145 @@
     .kv__row {
         gap: 0;
         padding-block: var(--s-2);
+    }
+}
+
+/* === 12. Content on a phone ============================================ */
+/* Chrome is handled above; this is the catalog, the hero facts and the list rows */
+
+/* --- Rail on a touch screen -------------------------------------------- */
+
+@media (max-width: 900px) {
+    /* The arrows are a desk affordance: a swipe must land on a card, not between two */
+    .rail__track {
+        scroll-snap-type: x mandatory;
+        /* Peeking card fades out rather than being cut by the viewport edge */
+        mask-image: linear-gradient(
+            to right,
+            transparent 0,
+            #000 var(--gutter),
+            #000 calc(100% - var(--gutter) - 2.25rem),
+            transparent calc(100% - var(--gutter)));
+    }
+}
+
+@media (max-width: 560px) {
+    :root {
+        /* Two cards and a peek: a card the viewport cuts cuts its name mid-word */
+        --tile-w: clamp(
+            7.75rem,
+            calc((100vw - var(--gutter) * 2 - var(--rail-gap) - 2.25rem) / 2),
+            11rem);
+    }
+
+    /* Collapsed, not hidden: a zero-height drawer still lays its text over the rail below */
+    .tile__reveal {
+        display: none;
+    }
+
+    /* Wider card, so a three-part employer line fits whole */
+    .tile__job {
+        -webkit-line-clamp: 3;
+        line-clamp: 3;
+    }
+
+    /* A screenful of ground between two rails is a screenful not spent on citizens */
+    .rail__head {
+        padding-block: var(--s-3) var(--s-2);
+    }
+
+    .rail__track {
+        padding-block: var(--s-2) var(--s-4);
+    }
+
+    .billboard--idle {
+        padding-block: var(--s-4);
+    }
+
+    .billboard__sub {
+        margin-top: var(--s-2);
+    }
+
+    .wall__foot {
+        padding-top: var(--s-3);
+    }
+
+    /* --- Rows in one narrow column ------------------------------------- */
+
+    /* The name owns its line, so the balance lands in the same place on every row */
+    .line__name {
+        flex: 1 1 100%;
+    }
+
+    /* Values under one another, keys under one another: wrapped inline facts align nowhere */
+    .tally {
+        display: grid;
+        grid-template-columns: max-content minmax(0, 1fr);
+        gap: var(--s-1) var(--s-3);
+    }
+
+    .tally__item {
+        display: contents;
+    }
+
+    /* --- Tap targets --------------------------------------------------- */
+    /* 44px is the floor; the desk sizes above stay as they are */
+
+    .btn {
+        min-height: 2.75rem;
+    }
+
+    .btn--sm {
+        height: 2.75rem;
+    }
+
+    .btn--icon {
+        width: 2.75rem;
+        height: 2.75rem;
+    }
+
+    /* Four choices in a card column fall below the 44px floor: they wrap instead */
+    .segment {
+        flex-wrap: wrap;
+    }
+
+    .segment__btn {
+        flex: 1 1 4.5rem;
+        min-width: 2.75rem;
+        height: 2.75rem;
+    }
+
+    .ladder__step {
+        min-height: 2.75rem;
+    }
+
+    .input,
+    .select,
+    .range {
+        height: 2.75rem;
+    }
+
+    /* A one-line summary is a 20px target: the padding is the only way to grow it */
+    .reveal__summary {
+        display: flex;
+        align-items: center;
+        min-height: 2.75rem;
+    }
+}
+
+/* --- Motion on touch --------------------------------------------------- */
+/* No hover to carry the enlargement, so the press itself answers */
+
+@media (hover: none) {
+    .tile:active {
+        transform: scale(0.96);
+        transition-duration: 0.15s;
+    }
+}
+
+/* The shared block zeroes durations but not delays: a stagger would still hold a blank */
+@media (prefers-reduced-motion: reduce) {
+    .rail__cell {
+        animation-delay: 0ms !important;
     }
 }

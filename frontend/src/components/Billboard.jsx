@@ -52,23 +52,33 @@ export default function Billboard({ player, bridgeDown, writeLog, onClear }) {
                         {player.name}
                     </h1>
 
-                    {/* No separator dots: on wrap one would start a line orphaned */}
-                    <div className="billboard__meta">
+                    <div className="billboard__tags">
                         <span className={`pill ${status.cls}`}>
                             <span className="pill__dot" aria-hidden="true" />
                             {status.text}
                         </span>
                         <span className="billboard__cid u-mono">{player.citizenid}</span>
-                        <span className="billboard__fact">{jobTitle(player)}</span>
+                    </div>
+
+                    {/* Named facts: over key art an unlabelled gap reads as a break */}
+                    <dl className="billboard__meta">
+                        <div className="billboard__fact">
+                            <dt className="billboard__factkey u-caps">Job</dt>
+                            <dd className="billboard__factvalue">{jobTitle(player)}</dd>
+                        </div>
                         {player.isOnline && !bridgeDown && player.sourceID != null && (
-                            <span className="billboard__fact">
-                                Server ID <span className="u-mono">{player.sourceID}</span>
-                            </span>
+                            <div className="billboard__fact">
+                                <dt className="billboard__factkey u-caps">Server ID</dt>
+                                <dd className="billboard__factvalue u-mono">{player.sourceID}</dd>
+                            </div>
                         )}
                         {char.phone && (
-                            <span className="billboard__fact u-mono">{char.phone}</span>
+                            <div className="billboard__fact">
+                                <dt className="billboard__factkey u-caps">Phone</dt>
+                                <dd className="billboard__factvalue u-mono">{char.phone}</dd>
+                            </div>
                         )}
-                    </div>
+                    </dl>
                 </div>
 
                 <div className="billboard__balances">
