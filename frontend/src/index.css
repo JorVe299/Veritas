@@ -119,6 +119,13 @@
     --r-panel: 8px;
     --r-pill: 999px;
 
+    /* Concentric nesting: inner radius = outer radius - distance to the outer edge */
+    --bw: 1px;
+    --well-pad: 3px;
+    --r-well: 8px;
+    --r-well-item: max(0px, calc(var(--r-well) - var(--bw) - var(--well-pad)));
+    --r-panel-inner: max(0px, calc(var(--r-panel) - var(--bw)));
+
     --sh-panel: 0 1px 2px rgba(0, 0, 0, 0.45);
     --sh-tile: 0 20px 38px -14px rgba(0, 0, 0, 0.9), 0 4px 10px -4px rgba(0, 0, 0, 0.6);
     --sh-rail: 0 10px 24px -10px rgba(0, 0, 0, 0.8);

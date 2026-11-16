@@ -879,7 +879,7 @@
     padding: var(--s-3) var(--s-4);
     border-top: 1px solid var(--c-border);
     background: rgba(0, 0, 0, 0.22);
-    border-radius: 0 0 var(--r-panel) var(--r-panel);
+    border-radius: 0 0 var(--r-panel-inner) var(--r-panel-inner);
     flex-wrap: wrap;
 }
 
@@ -921,9 +921,9 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
-    border: 1px solid var(--c-border-strong);
-    border-radius: var(--r-control);
-    padding: 3px;
+    border: var(--bw) solid var(--c-border-strong);
+    border-radius: var(--r-well);
+    padding: var(--well-pad);
     background: var(--c-surface-2);
     max-height: 15rem;
     overflow-y: auto;
@@ -936,7 +936,7 @@
     width: 100%;
     padding: var(--s-2) var(--s-3);
     border: 0;
-    border-radius: 4px;
+    border-radius: var(--r-well-item);
     background: transparent;
     color: var(--c-text-muted);
     text-align: left;
@@ -991,10 +991,10 @@
 .segment {
     display: flex;
     gap: 2px;
-    padding: 3px;
+    padding: var(--well-pad);
     background: var(--c-surface-2);
-    border: 1px solid var(--c-border-strong);
-    border-radius: var(--r-control);
+    border: var(--bw) solid var(--c-border-strong);
+    border-radius: var(--r-well);
 }
 
 .segment__btn {
@@ -1007,7 +1007,7 @@
     height: 2rem;
     padding: 0 var(--s-2);
     border: 0;
-    border-radius: 4px;
+    border-radius: var(--r-well-item);
     background: transparent;
     color: var(--c-text-muted);
     font-size: var(--fs-sm);
@@ -2635,6 +2635,10 @@
         height: 100%;
         border-radius: 0;
         border: 0;
+    }
+
+    .sheet__panel .panel__foot {
+        border-radius: 0;
     }
 
     .sheet__body {
