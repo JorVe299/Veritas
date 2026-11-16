@@ -14,7 +14,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@infisical/sdk": "^2.3.5",
+    "@infisical/sdk": "^5.3.1",
     "axios": "^1.13.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -23,5 +23,10 @@
     "express-rate-limit": "^8.7.1",
     "jsonwebtoken": "^9.0.3",
     "mysql2": "^3.15.3"
+  },
+  "overrides": {
+    "@infisical/sdk": {
+      "zod": "^4.6.7"
+    }
   }
 }
