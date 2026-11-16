@@ -88,7 +88,7 @@
     flex: none;
     padding: 0.2rem var(--s-2);
     border: 1px solid var(--c-border);
-    border-radius: var(--r-pill);
+    border-radius: var(--r-well-item);
     color: var(--c-text-faint);
 }
 

@@ -362,7 +362,8 @@
     align-items: center;
     gap: var(--s-2);
     padding: var(--s-1) var(--s-3);
-    border-radius: var(--r-pill);
+    /* Concentric with an 8px well at one well-pad */
+    border-radius: var(--r-well-item);
     border: 1px solid var(--c-border-strong);
     background: rgba(13, 12, 11, 0.6);
     font-size: var(--fs-micro);
@@ -3187,22 +3188,21 @@
     align-items: baseline;
     justify-content: flex-end;
     gap: var(--s-2);
-    /* Tucked into the line's top-right corner, one well-pad from the border */
-    align-self: flex-start;
-    margin: calc(var(--well-pad) - var(--s-3)) calc(var(--well-pad) - var(--s-3)) 0 auto;
     /* May narrow to its widest pill: on a phone the two pills stack instead of overflowing */
     flex: 0 1 auto;
     max-width: 100%;
 }
 
-/* Badges hold the corner: the name breaks inside itself instead of pushing them down */
-.line__top:has(> .line__badges) {
-    flex-wrap: nowrap;
+/* Tucked into the line's top-right corner, one well-pad from the border */
+.line__badges,
+.line__badge {
+    align-self: flex-start;
+    margin: calc(var(--well-pad) - var(--s-3)) calc(var(--well-pad) - var(--s-3)) 0 auto;
 }
 
-/* Concentric with the line corner */
-.line__badges .pill {
-    border-radius: var(--r-well-item);
+/* Badges hold the corner: the name breaks inside itself instead of pushing them down */
+.line__top:has(> .line__badges, > .line__badge) {
+    flex-wrap: nowrap;
 }
 
 /* Provenance, not a verdict: neutral and untracked, a label beside the state, not a rival */
@@ -3375,11 +3375,12 @@
     }
 
     /* Badges wrap below the name here: no corner to tuck into */
-    .line__top:has(> .line__badges) {
+    .line__top:has(> .line__badges, > .line__badge) {
         flex-wrap: wrap;
     }
 
-    .line__badges {
+    .line__badges,
+    .line__badge {
         align-self: auto;
         margin: 0 0 0 auto;
     }
