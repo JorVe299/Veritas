@@ -1099,8 +1099,8 @@
     gap: var(--s-2);
     padding: var(--s-3);
     background: var(--c-surface-2);
-    border: 1px solid var(--c-border-strong);
-    border-radius: var(--r-control);
+    border: var(--bw) solid var(--c-border-strong);
+    border-radius: var(--r-well);
     /* Runs on mount only: a refetch keeps the keys, so a poll replays nothing */
     animation: line-in 0.22s var(--ease-out) both;
 }
@@ -3185,11 +3185,24 @@
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
+    justify-content: flex-end;
     gap: var(--s-2);
-    margin-left: auto;
+    /* Tucked into the line's top-right corner, one well-pad from the border */
+    align-self: flex-start;
+    margin: calc(var(--well-pad) - var(--s-3)) calc(var(--well-pad) - var(--s-3)) 0 auto;
     /* May narrow to its widest pill: on a phone the two pills stack instead of overflowing */
     flex: 0 1 auto;
     max-width: 100%;
+}
+
+/* Badges hold the corner: the name breaks inside itself instead of pushing them down */
+.line__top:has(> .line__badges) {
+    flex-wrap: nowrap;
+}
+
+/* Concentric with the line corner */
+.line__badges .pill {
+    border-radius: var(--r-well-item);
 }
 
 /* Provenance, not a verdict: neutral and untracked, a label beside the state, not a rival */
@@ -3359,6 +3372,16 @@
     /* The name owns its line, so the balance lands in the same place on every row */
     .line__name {
         flex: 1 1 100%;
+    }
+
+    /* Badges wrap below the name here: no corner to tuck into */
+    .line__top:has(> .line__badges) {
+        flex-wrap: wrap;
+    }
+
+    .line__badges {
+        align-self: auto;
+        margin: 0 0 0 auto;
     }
 
     /* Values under one another, keys under one another: wrapped inline facts align nowhere */
